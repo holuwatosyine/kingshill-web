@@ -5,15 +5,15 @@ const FooterShaderBackground = () => (
   <div className="kh-footer-shader" aria-hidden="true">
     <ShaderSurface className="kh-footer-shader__canvas">
       <Godrays
-        backgroundColor="#f2f3f1"
+        backgroundColor="#ffffff"
         center={{ x: 0.16, y: 0.72 }}
-        intensity={0.14}
-        rayColor="#b6c6c4"
+        intensity={0.045}
+        rayColor="#f8f8f6"
         speed={0.16}
       />
-      <FilmGrain strength={0.018} />
-      <Tritone colorA="#f3f4f2" colorB="#e7ecea" colorC="#cadad8" colorSpace="rgb" />
-      <ZoomBlur center={{ x: 0.78, y: 0.28 }} intensity={0.65} />
+      <FilmGrain strength={0.006} />
+      <Tritone colorA="#ffffff" colorB="#fcfcfa" colorC="#f8faf9" colorSpace="rgb" />
+      <ZoomBlur center={{ x: 0.78, y: 0.28 }} intensity={0.06} />
     </ShaderSurface>
   </div>
 );

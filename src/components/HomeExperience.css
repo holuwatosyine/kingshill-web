@@ -1453,3 +1453,67 @@ a.kh-liquid-button.kh2-button--gold .kh-liquid-button__label > span {
   .kh2-client-signal__archive { min-height: 390px; padding: 26px 0 22px; }
   .kh2-client-record { min-height: 112px; }
 }
+
+/* Testimonials geometry correction: keep the dominant quote inside its lead column. */
+.kh2-client-signal__lead {
+  min-height: 610px;
+  padding: clamp(34px, 4.6vw, 68px) clamp(22px, 4.2vw, 64px) clamp(34px, 4.6vw, 64px) 0;
+  display: block;
+  overflow: hidden;
+}
+.kh2-client-signal__lead blockquote {
+  position: relative;
+  max-width: 17ch;
+  margin: clamp(48px, 6vw, 82px) 0 clamp(38px, 5vw, 66px);
+  font-size: clamp(2rem, 3.45vw, 4.25rem);
+  line-height: 1.02;
+  transform: none;
+}
+.kh2-client-signal__lead footer { margin-top: 0; }
+.kh2-client-record { position: relative; z-index: 3; }
+.kh2-client-signal__archive,
+.kh2-client-signal__archive-label,
+.kh2-client-signal__choices { position: relative; z-index: 3; }
+@media (max-width: 720px) {
+  .kh2-client-signal__lead { min-height: 0; padding: 28px 0 36px; }
+  .kh2-client-signal__lead blockquote { max-width: 16ch; margin: 58px 0 42px; font-size: clamp(2rem, 9.2vw, 3.4rem); }
+}
+
+/* Keep testimonial choices present in the first viewport of the editorial panel. */
+.kh2-client-signal__archive { align-self: stretch; }
+.kh2-client-signal__choices { margin-top: 18px; }
+.kh2-client-record { min-height: 108px; }
+.kh2-client-record > strong { min-width: 0; max-width: 18ch; }
+@media (max-width: 720px) {
+  .kh2-client-signal__choices { margin-top: 12px; }
+  .kh2-client-record { min-height: 96px; }
+}
+
+/* Final black-ink contrast pass: edge animation and all Footer copy. Glass fills intentionally unchanged. */
+.kh2-programmes__signal[data-brand-glass]::before,
+.kh2-footer__directory[data-brand-glass]::before {
+  background: conic-gradient(from 0deg, transparent 0%, rgba(0,0,0,.8) 18%, transparent 38%, rgba(0,0,0,.5) 52%, rgba(0,0,0,.8) 70%, transparent 100%);
+  opacity: .72;
+}
+.kh2-programmes__signal[data-brand-glass]:hover::before,
+.kh2-footer__directory[data-brand-glass]:hover::before { opacity: .92; }
+.kh2-footer-zone,
+.kh2-footer-zone h2,
+.kh2-footer-zone h2 em,
+.kh2-footer-zone p,
+.kh2-footer-zone span,
+.kh2-footer-zone strong,
+.kh2-footer-zone small,
+.kh2-footer-zone a,
+.kh2-footer-zone address,
+.kh2-footer-zone .kh2-footer__utility-label,
+.kh2-footer-zone .kh2-footer__base,
+.kh2-footer-zone .kh2-footer__directory-column a,
+.kh2-footer-zone .kh2-footer__directory-column address {
+  color: #000 !important;
+}
+.kh2-footer__closing-fallback em {
+  color: #000 !important;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}

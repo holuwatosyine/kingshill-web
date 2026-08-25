@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { experienceState, type ExperienceReadyKey } from "@/experience/state";
+
+const CloudPrelude = lazy(() => import("@/experience/CloudPrelude"));
 
 const loaderVertex = `
 varying vec2 vUv;
@@ -16,7 +18,7 @@ varying vec2 vUv;
 vec2 rotate2d(vec2 p,float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c)*p;}
 float lineSegment(vec2 p,vec2 a,vec2 b,float w){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);float d=length(pa-ba*h);return 1.0-smoothstep(w,w+max(fwidth(d),.0015),d);}
 float mark(vec2 p){float w=.025;float k=lineSegment(p,vec2(-.49,-.2),vec2(-.49,.2),w)+lineSegment(p,vec2(-.49,0.),vec2(-.27,.2),w)+lineSegment(p,vec2(-.49,0.),vec2(-.25,-.2),w);vec2 cp=p-vec2(-.015,0.);float c=1.0-smoothstep(w,w+max(fwidth(abs(length(cp)-.2)),.002),abs(length(cp)-.2));c*=1.0-step(.035,cp.x)*(1.0-smoothstep(.095,.14,abs(cp.y)));float a=lineSegment(p,vec2(.2,-.2),vec2(.38,.2),w)+lineSegment(p,vec2(.38,.2),vec2(.56,-.2),w)+lineSegment(p,vec2(.27,-.04),vec2(.49,-.04),w);return clamp(k+c+a,0.0,1.0);}
-void main(){vec2 p=vUv*2.0-1.0;p.x*=uAspect;float transform=smoothstep(.38,1.0,uExit);p/=mix(1.0,6.6,transform);p=rotate2d(p,mix(0.0,PI/16.0,transform));p.y+=mix(0.0,.1,transform);float track=(1.0-step(p.x,-.3))*(1.0-step(.3,p.x))*(1.0-step(p.y,-.05))*(1.0-step(.05,p.y));float fill=track*(1.0-step(-.3+.6*uProgress,p.x));float logo=mark(p*3.8);float loading=1.0-step(.999,uProgress);float shape=track*loading+logo*(1.0-loading);vec3 navy=vec3(.006,.012,.026);vec3 mineral=vec3(.22,.56,.55);vec3 paper=vec3(.96,.97,.92);vec3 trackColor=vec3(.035,.08,.14)*track*loading;vec3 fillColor=mineral*fill*loading;vec3 logoColor=paper*logo*(1.0-loading);float alpha=1.0-smoothstep(.76,1.0,uExit);gl_FragColor=vec4(mix(navy,trackColor+fillColor+logoColor,clamp(shape,0.0,1.0)),alpha);}
+void main(){vec2 p=vUv*2.0-1.0;p.x*=uAspect;float transform=smoothstep(.38,1.0,uExit);p/=mix(1.0,6.6,transform);p=rotate2d(p,mix(0.0,PI/16.0,transform));p.y+=mix(0.0,.1,transform);float track=(1.0-step(p.x,-.3))*(1.0-step(.3,p.x))*(1.0-step(p.y,-.05))*(1.0-step(.05,p.y));float fill=track*(1.0-step(-.3+.6*uProgress,p.x));  float logo=0.0;float loading=1.0-step(.999,uProgress);float shape=track*loading+logo*(1.0-loading);vec3 navy=vec3(.006,.012,.026);vec3 mineral=vec3(.22,.56,.55);vec3 paper=vec3(.96,.97,.92);vec3 trackColor=vec3(1.0)*track*loading; vec3 fillColor=vec3(1.0)*fill*loading;vec3 logoColor=paper*logo*(1.0-loading);float alpha=1.0-smoothstep(.76,1.0,uExit); vec3 markColor=mix(vec3(0.0),trackColor+fillColor+logoColor,clamp(shape,0.0,1.0)); gl_FragColor=vec4(markColor,alpha*clamp(shape,0.0,1.0));}
 `;
 
 const assets = [
@@ -111,7 +113,7 @@ const ExperiencePreloader = () => {
       }, 12_000);
     });
 
-    const gestureTravel = () => Math.max(1, window.innerHeight * 6.5);
+    const gestureTravel = () => Math.max(1, window.innerHeight * 4.25);
     const mapGestureToCloud = (value: number) => {
       const progress = THREE.MathUtils.clamp(value, 0, 1);
       if (progress < 1 / 3) return THREE.MathUtils.smoothstep(progress, 0, 1 / 3) * 0.3;
@@ -119,7 +121,7 @@ const ExperiencePreloader = () => {
       return 0.68 + THREE.MathUtils.smoothstep(progress, 2 / 3, 1) * 0.32;
     };
     const applyGesture = (distance: number) => {
-      if (experienceState.entered) return;
+      if (experienceState.entered || !inputReady) return;
       const forwardDistance = Math.max(0, distance);
       if (forwardDistance <= 0) return;
       gestureProgress = THREE.MathUtils.clamp(gestureProgress + forwardDistance / gestureTravel(), 0, 1);
@@ -163,13 +165,12 @@ const ExperiencePreloader = () => {
     const preload = async () => {
       await Promise.allSettled(assets.map(loadAsset));
       experienceState.markReady("assets");
-      target = Math.max(target, 0.86);
-      target = 1;
-      void Promise.allSettled([
+      await Promise.allSettled([
         document.fonts?.ready ?? Promise.resolve(),
         waitForRuntime(["cloud", "water", "fluid"]),
         import("@/components/effects/LusionConnectors"),
       ]);
+      target = 1;
     };
 
     try {
@@ -289,7 +290,9 @@ const ExperiencePreloader = () => {
   };
 
   return (
-    <div
+    <>
+      <Suspense fallback={null}><CloudPrelude /></Suspense>
+      <div
       ref={overlayRef}
       className={`kh-loader ${isExiting ? "is-exiting" : ""}`}
       role="status"
@@ -297,14 +300,9 @@ const ExperiencePreloader = () => {
       aria-label="Loading the Kingshill experience"
     >
       <canvas ref={canvasRef} aria-hidden="true" />
-      <div className="kh-loader__brand">
-        <strong>Kingshill</strong>
-        <span>School of Discovery</span>
-      </div>
-
       <div className="kh-loader__main">
         <div className="kh-loader__status">
-          <span>{isExiting ? "Entering" : gestureReady ? "Scroll forward to enter" : "Loading"}</span>
+          <span>Scroll forward to enter</span>
           <i />
         </div>
       </div>
@@ -314,7 +312,8 @@ const ExperiencePreloader = () => {
       <button type="button" className="kh-loader__sound" onClick={toggleSound} aria-pressed={soundEnabled}>
         <span aria-hidden="true"><i /><i /><i /></span><b>Sound {soundEnabled ? "on" : "off"}</b>
       </button>
-    </div>
+      </div>
+    </>
   );
 };
 

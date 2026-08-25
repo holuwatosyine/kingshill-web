@@ -10,7 +10,6 @@ const TestimonialShaderBackground = lazy(() => import("@/components/effects/Test
 import { experienceState } from "@/experience/state";
 import "@/components/HomeExperience.css";
 
-const CloudPrelude = lazy(() => import("@/experience/CloudPrelude"));
 const LusionHero = lazy(() => import("@/components/effects/LusionHero"));
 const KingshillPassage = lazy(() => import("@/components/effects/KingshillPassage"));
 
@@ -45,17 +44,17 @@ const testimonials = [
   {
     name: "Adunni Okonkwo",
     role: "Life Coach & Entrepreneur",
-    quote: "Training with Kingshill School of Discovery was the springboard to transforming my career. The practical approach and expert guidance helped me build a successful coaching practice that has impacted over 200 clients.",
+    quote: "Kingshill gave me the practical clarity to build a coaching practice that now reaches more than 200 clients.",
   },
   {
     name: "Emeka Chibueze",
     role: "Corporate Trainer",
-    quote: "The NLP training program at Kingshill exceeded my expectations. The skills I learned have enhanced my professional capabilities, personal relationships and leadership style.",
+    quote: "NLP training sharpened how I lead, communicate, and work with people.",
   },
   {
     name: "Fatima Ibrahim",
     role: "Youth Development Specialist",
-    quote: "The Youth Coaching Program gave me the tools and confidence to make a real impact in young people's lives. I've since launched a youth empowerment organization that has reached over 500 young Nigerians.",
+    quote: "Youth coaching gave me the confidence and tools to build an organisation for young Nigerians.",
   },
 ];
 
@@ -108,9 +107,6 @@ const HomeExperience = () => {
 
   return (
     <div ref={pageRef} className="kh2-page">
-      <Suspense fallback={<div className="kh-cloud-prelude" aria-hidden="true" />}>
-        <CloudPrelude />
-      </Suspense>
       <Suspense fallback={null}>
         <KingshillPassage />
       </Suspense>

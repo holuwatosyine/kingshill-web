@@ -19,7 +19,7 @@ void main(){
   p.xy+=direction*pressure*.16;
   p.z+=sin(uTime*.46+aSeed*31.0)*.012*uAssemble;
   gl_Position=vec4(p,1.0);
-  gl_PointSize=(1.38+uEnergy*1.5+sin(aSeed*18.0+uTime*.46)*.12)*uDpr;
+  gl_PointSize=(1.72+uEnergy*1.8+sin(aSeed*18.0+uTime*.46)*.14)*uDpr;
   vSeed=aSeed;
 }`;
 
@@ -29,9 +29,9 @@ void main(){
   vec2 point=gl_PointCoord-.5;
   float radius=length(point);
   if(radius>.5)discard;
-  float soft=1.0-smoothstep(.22,.5,radius);
-  vec3 mineral=vec3(.08,.22,.28);
-  vec3 ivory=vec3(.02,.08,.15);
+  float soft=1.0-smoothstep(.34,.5,radius);
+  vec3 mineral=vec3(0.0);
+  vec3 ivory=vec3(0.0);
   vec3 colour=mix(mineral,ivory,smoothstep(.18,.82,vSeed));
   gl_FragColor=vec4(colour,soft);
 }`;
@@ -47,9 +47,9 @@ const createParticleGeometry = (quality: "low" | "medium" | "high") => {
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.font = '680 252px "Geist KH", Arial, sans-serif';
-  context.fillText("KINGS HILL", source.width / 2, source.height / 2 + 18);
+  context.fillText("KINGSHILL", source.width / 2, source.height / 2 + 18);
   const pixels = context.getImageData(0, 0, source.width, source.height).data;
-  const step = quality === "high" ? 5 : quality === "medium" ? 6 : 8;
+  const step = quality === "high" ? 4 : quality === "medium" ? 5 : 7;
   const positions: number[] = [];
   const scatter: number[] = [];
   const seeds: number[] = [];
@@ -130,7 +130,7 @@ export const FooterWordmarkScene = () => {
         transparent: true,
         depthTest: false,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.NormalBlending,
         uniforms: {
           uTime: { value: 0 },
           uAssemble: { value: assemble },
