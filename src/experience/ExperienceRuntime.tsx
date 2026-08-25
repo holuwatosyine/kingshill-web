@@ -116,6 +116,21 @@ const ExperienceRuntime = () => {
           syncTouchLerp: 0.09,
         });
     lenisRef.current = lenis;
+    let lenisStoppedForLoader = false;
+    const syncLoaderScroll = () => {
+      const loaderActive = document.documentElement.classList.contains("kh-is-loading");
+      if (loaderActive) {
+        if (lenis && !lenisStoppedForLoader) {
+          lenis.stop();
+          lenisStoppedForLoader = true;
+        }
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+      } else if (lenis && lenisStoppedForLoader) {
+        lenis.start();
+        lenisStoppedForLoader = false;
+      }
+    };
+    syncLoaderScroll();
 
     const updateScrollState = (event?: { scroll: number; limit: number; velocity: number; direction: number }) => {
       const scroll = event?.scroll ?? window.scrollY;
@@ -225,7 +240,8 @@ const ExperienceRuntime = () => {
       const delta = Math.min(0.05, Math.max(0.001, (now - previous) / 1000));
       previous = now;
       const frameStarted = performance.now();
-      lenis?.raf(now);
+      syncLoaderScroll();
+      if (!document.documentElement.classList.contains("kh-is-loading")) lenis?.raf(now);
       experienceState.tick(delta);
       const pointer = experienceState.pointer;
       root.style.setProperty("--kh-pointer-x", `${pointer.clientX}px`);

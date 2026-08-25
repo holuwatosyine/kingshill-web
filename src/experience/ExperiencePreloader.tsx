@@ -49,7 +49,11 @@ const ExperiencePreloader = () => {
     const overlay = overlayRef.current;
     if (!canvas || !overlay) return;
     document.documentElement.classList.add("kh-is-loading");
-
+    const lockedScrollY = window.scrollY;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
     let disposed = false;
     let raf = 0;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -121,10 +125,14 @@ const ExperiencePreloader = () => {
       gestureProgress = THREE.MathUtils.clamp(gestureProgress + forwardDistance / gestureTravel(), 0, 1);
       experienceState.setCloudProgress(mapGestureToCloud(gestureProgress));
     };
+    const lockPageScroll = () => {
+      if (!experienceState.entered && !disposed && window.scrollY !== lockedScrollY) window.scrollTo(0, lockedScrollY);
+    };
     const onWheel = (event: WheelEvent) => {
-      if (experienceState.entered) return;
+      if (!document.documentElement.classList.contains("kh-is-loading")) return;
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
       const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
       const normalizedDelta = THREE.MathUtils.clamp(event.deltaY * multiplier, -window.innerHeight * 0.9, window.innerHeight * 0.9);
       applyGesture(normalizedDelta);
@@ -133,9 +141,10 @@ const ExperiencePreloader = () => {
       if (event.touches[0]) touchLastY = event.touches[0].clientY;
     };
     const onTouchMove = (event: TouchEvent) => {
-      if (experienceState.entered || !event.touches[0]) return;
+      if (!document.documentElement.classList.contains("kh-is-loading") || !event.touches[0]) return;
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
       const currentY = event.touches[0].clientY;
       applyGesture(touchLastY - currentY);
       touchLastY = currentY;
@@ -187,6 +196,7 @@ const ExperiencePreloader = () => {
       resize();
       window.addEventListener("resize", resize, { passive: true });
       window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+      window.addEventListener("scroll", lockPageScroll, { passive: true, capture: true });
       window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
       window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
       window.addEventListener("keydown", onKeyDown, { capture: true });
@@ -221,6 +231,9 @@ const ExperiencePreloader = () => {
         if (exit >= 1) {
           document.documentElement.classList.remove("kh-is-loading");
           document.body.classList.add("kh-experience-ready");
+          window.removeEventListener("scroll", lockPageScroll, { capture: true });
+          document.documentElement.style.overflow = previousRootOverflow;
+          document.body.style.overflow = previousBodyOverflow;
           window.removeEventListener("resize", resize);
           if (resizePixelRatio) window.removeEventListener("kingshill:render-scale", resizePixelRatio);
           window.removeEventListener("wheel", onWheel, { capture: true });
@@ -250,10 +263,13 @@ const ExperiencePreloader = () => {
       material?.dispose();
       if (resizePixelRatio) window.removeEventListener("kingshill:render-scale", resizePixelRatio);
       window.removeEventListener("wheel", onWheel, { capture: true });
+      window.removeEventListener("scroll", lockPageScroll, { capture: true });
       window.removeEventListener("touchstart", onTouchStart, { capture: true });
       window.removeEventListener("touchmove", onTouchMove, { capture: true });
       window.removeEventListener("keydown", onKeyDown, { capture: true });
       document.documentElement.classList.remove("kh-is-loading");
+      document.documentElement.style.overflow = previousRootOverflow;
+      document.body.style.overflow = previousBodyOverflow;
     };
   }, []);
 

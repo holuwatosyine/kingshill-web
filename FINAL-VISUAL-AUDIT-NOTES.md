@@ -43,3 +43,11 @@ P1: Add a real mobile-viewport browser run and record responsive shell widths, t
 P2: Remove stale declarations for deleted Training circular nodes and unused shader components after visual behavior is accepted.
 
 P2: Add direct runtime markers for WebGL/RAF activity so offscreen performance can be verified rather than inferred from CSS animation counts.
+
+## Latest implementation evidence
+
+After the audit checkpoint changes, a live 1280 x 1100 browser run confirmed all five content shells use x=58.875px and width=1162.234px, matching the Lusion Hero shell. A three-wheel preloader probe held scrollY at 0 with both root and body overflow hidden. After entry, the page reported `kh-experience-ready`, the Training section was in view, and the Passage canvas reported display:block, visibility:visible, opacity:1. The Lusion Hero canvas remained mounted.
+
+The Testimonials selectors are now three accessible buttons with `aria-pressed` state; clicking the second choice changed the lead quote state in the live DOM. The Footer reports near-white `rgb(247,248,246)` with darker headline `rgb(6,20,38)` and the existing glass directory gradient/border intact. No role-alert runtime error was detected.
+
+A live browser screenshot at Training showed the restored Passage lens as a visible light lens object beside the Training glass panel. The current implementation still has a dark Training section, which is the existing intended Training environment rather than an audit regression. The screenshot also showed the new editorial Testimonials heading beginning below Training.

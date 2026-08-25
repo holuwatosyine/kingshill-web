@@ -63,6 +63,7 @@ const HomeExperience = () => {
   const pageRef = useRef<HTMLDivElement | null>(null);
   useBrandGlassShine();
   const [activeProgramme, setActiveProgramme] = useState(0);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -228,19 +229,30 @@ const HomeExperience = () => {
             </div>
             <div className="kh2-client-signal" data-reveal="focus">
               <div className="kh2-client-signal__lead" data-cursor="text">
-                <div className="kh2-client-signal__lead-top"><span>01</span><span>Client record</span></div>
-                <blockquote>“{testimonials[0].quote}”</blockquote>
-                <footer><strong>{testimonials[0].name}</strong><small>{testimonials[0].role}</small></footer>
+                <div className="kh2-client-signal__lead-top"><span>{String(activeTestimonial + 1).padStart(2, "0")}</span><span>Kingshill outcome</span></div>
+                <blockquote>“{testimonials[activeTestimonial].quote}”</blockquote>
+                <footer><strong>{testimonials[activeTestimonial].name}</strong><small>{testimonials[activeTestimonial].role}</small></footer>
               </div>
               <div className="kh2-client-signal__archive">
-                <div className="kh2-client-signal__archive-label"><span>Voices in motion</span><i aria-hidden="true">↗</i></div>
-                {testimonials.slice(1).map((testimonial, index) => (
-                  <article key={testimonial.name} className="kh2-client-record" data-cursor="text">
-                    <div className="kh2-client-record__top"><span>{String(index + 2).padStart(2, "0")}</span><span>{testimonial.role}</span></div>
-                    <blockquote>“{testimonial.quote}”</blockquote>
-                    <footer><strong>{testimonial.name}</strong></footer>
-                  </article>
-                ))}
+                <div className="kh2-client-signal__archive-label"><span>Inside the work</span><i aria-hidden="true">↗</i></div>
+                <div className="kh2-client-signal__choices" role="list">
+                  {testimonials.map((testimonial, index) => (
+                    <button
+                      key={testimonial.name}
+                      type="button"
+                      className={`kh2-client-record ${activeTestimonial === index ? "is-active" : ""}`}
+                      data-cursor="text"
+                      onClick={() => setActiveTestimonial(index)}
+                      onFocus={() => setActiveTestimonial(index)}
+                      aria-pressed={activeTestimonial === index}
+                      role="listitem"
+                    >
+                      <span className="kh2-client-record__top"><span>{String(index + 1).padStart(2, "0")}</span><span>{testimonial.role}</span></span>
+                      <strong>{testimonial.name}</strong>
+                      <span aria-hidden="true">↗</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="kh2-stats" data-reveal="rise">

@@ -30,8 +30,8 @@ void main(){
   float radius=length(point);
   if(radius>.5)discard;
   float soft=1.0-smoothstep(.22,.5,radius);
-  vec3 mineral=vec3(.78,1.0,.95);
-  vec3 ivory=vec3(1.0,.995,.94);
+  vec3 mineral=vec3(.08,.22,.28);
+  vec3 ivory=vec3(.02,.08,.15);
   vec3 colour=mix(mineral,ivory,smoothstep(.18,.82,vSeed));
   gl_FragColor=vec4(colour,soft);
 }`;
