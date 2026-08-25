@@ -172,7 +172,7 @@ const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean 
       experienceState.markReady("assets");
       await Promise.allSettled([
         document.fonts?.ready ?? Promise.resolve(),
-        waitForRuntime(["cloud", "water", "fluid"]),
+        waitForRuntime(requiresHome ? ["cloud", "fluid"] : ["cloud", "water", "fluid"]),
         homeRoutePromise,
         ...homeVisualPromises,
         import("@/components/effects/LusionConnectors"),

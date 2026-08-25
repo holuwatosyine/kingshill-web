@@ -217,7 +217,7 @@ const CloudPrelude = () => {
       if (experienceState.entered) {
         exitProgress = Math.min(1, exitProgress + delta * 0.82);
       }
-      const progress = experienceState.reducedMotion ? 0.42 : Math.min(0.96, gestureProgress * 0.94 + elapsed * 0.012);
+      const progress = experienceState.reducedMotion ? 0.42 : gestureProgress * 0.94;
       const pointer = experienceState.pointer;
 
       curve.getPointAt(Math.min(1, progress), cameraPoint);
