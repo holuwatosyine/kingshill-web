@@ -32,16 +32,10 @@ void main(){gl_FragColor=vec4(0.0,0.0,0.0,0.0);}
 
 const assets = [
   { url: "/experience/cloud.png", bytes: 420_000 },
-  { url: "/experience/waternormals.jpg", bytes: 1_100_000 },
   { url: "/experience/models/c-transformed.glb", bytes: 310_000 },
   { url: "/experience/fonts/GeistVF.woff2", bytes: 190_000 },
   { url: "/experience/fonts/GeistMonoVF.woff2", bytes: 180_000 },
   { url: "/IMG-20250827-WA0019.webp", bytes: 320_000 },
-  { url: "/IMG-20250821-WA0003.webp", bytes: 320_000 },
-  { url: "/IMG-20250827-WA0020.webp", bytes: 320_000 },
-  { url: "/IMG-20250827-WA0021.webp", bytes: 320_000 },
-  { url: "/kingshill-course-feature.jpg", bytes: 420_000 },
-  { url: "/IMG-20250827-WA0022.webp", bytes: 320_000 },
 ];
 
 const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean }) => {
@@ -172,7 +166,7 @@ const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean 
       const homeRoutePromise = requiresHomeRef.current ? import("@/pages/Index") : Promise.resolve();
       await Promise.allSettled([
         document.fonts?.ready ?? Promise.resolve(),
-        waitForRuntime(requiresHomeRef.current ? ["cloud", "fluid"] : ["cloud", "water", "fluid"]),
+        waitForRuntime(["cloud", "fluid"]),
         homeRoutePromise,
         ...(requiresHomeRef.current ? loadHomeVisualModules() : []),
         import("@/components/effects/LusionConnectors"),

@@ -18,25 +18,21 @@ const programmes = [
     title: "Life Coaching Certification",
     copy: "The foundation of all our training — our professionally accredited life coaching certification programme with international recognition.",
     meta: "20+ designations",
-    image: "/kingshill-course-feature.jpg",
   },
   {
     title: "NLP Training Program",
     copy: "Neuro-Linguistic Programming certification designed to teach advanced communication and influence techniques.",
     meta: "Professional",
-    image: "/IMG-20250827-WA0022.webp",
   },
   {
     title: "Corporate Coaching Program",
     copy: "Specialized training for coaching larger corporates, their teams, and organizational development.",
     meta: "Enterprise",
-    image: "/IMG-20250827-WA0020.webp",
   },
   {
     title: "Transitional Youth Coaching Program",
     copy: "Specialized program designed for coaching young professionals and students.",
     meta: "Youth focused",
-    image: "/IMG-20250821-WA0003.webp",
   },
 ];
 
