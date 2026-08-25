@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { ChromaFlow, CursorRipples, DotGrid, LinearGradient, Shader } from "shaders/react";
+import { ChromaFlow, CursorRipples, DotGrid, LinearGradient } from "shaders/react";
+import ShaderSurface from "@/components/effects/ShaderSurface";
 import { experienceState } from "@/experience/state";
 
 const FluidPointer = () => {
@@ -11,7 +12,7 @@ const FluidPointer = () => {
 
   return (
     <div className="kh-shader-cursor" aria-hidden="true">
-      <Shader className="kh-shader-cursor__canvas" disableTelemetry>
+      <ShaderSurface className="kh-shader-cursor__canvas">
         <DotGrid
           id="trailDots"
           density={40}
@@ -44,7 +45,7 @@ const FluidPointer = () => {
           start={{ x: 0, y: 1 }}
         />
         <CursorRipples />
-      </Shader>
+      </ShaderSurface>
     </div>
   );
 };

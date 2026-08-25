@@ -16,7 +16,7 @@ varying vec2 vUv;
 vec2 rotate2d(vec2 p,float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c)*p;}
 float lineSegment(vec2 p,vec2 a,vec2 b,float w){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);float d=length(pa-ba*h);return 1.0-smoothstep(w,w+max(fwidth(d),.0015),d);}
 float mark(vec2 p){float w=.025;float k=lineSegment(p,vec2(-.49,-.2),vec2(-.49,.2),w)+lineSegment(p,vec2(-.49,0.),vec2(-.27,.2),w)+lineSegment(p,vec2(-.49,0.),vec2(-.25,-.2),w);vec2 cp=p-vec2(-.015,0.);float c=1.0-smoothstep(w,w+max(fwidth(abs(length(cp)-.2)),.002),abs(length(cp)-.2));c*=1.0-step(.035,cp.x)*(1.0-smoothstep(.095,.14,abs(cp.y)));float a=lineSegment(p,vec2(.2,-.2),vec2(.38,.2),w)+lineSegment(p,vec2(.38,.2),vec2(.56,-.2),w)+lineSegment(p,vec2(.27,-.04),vec2(.49,-.04),w);return clamp(k+c+a,0.0,1.0);}
-void main(){vec2 p=vUv*2.0-1.0;p.x*=uAspect;float transform=smoothstep(.38,1.0,uExit);p/=mix(1.0,6.6,transform);p=rotate2d(p,mix(0.0,PI/16.0,transform));p.y+=mix(0.0,.1,transform);float track=(1.0-step(p.x,-.3))*(1.0-step(.3,p.x))*(1.0-step(p.y,-.05))*(1.0-step(.05,p.y));float fill=track*(1.0-step(-.3+.6*uProgress,p.x));float logo=mark(p*3.8);float loading=1.0-step(.999,uProgress);float shape=track*loading+logo*(1.0-loading);vec3 navy=vec3(.012,.045,.12);vec3 gold=vec3(.82,.69,.25);vec3 paper=vec3(.96,.93,.82);vec3 trackColor=vec3(.08,.16,.30)*track*loading;vec3 fillColor=gold*fill*loading;vec3 logoColor=mix(gold,paper,uExit)*logo*(1.0-loading);float alpha=1.0-smoothstep(.76,1.0,uExit);gl_FragColor=vec4(mix(navy,trackColor+fillColor+logoColor,clamp(shape,0.0,1.0)),alpha);}
+void main(){vec2 p=vUv*2.0-1.0;p.x*=uAspect;float transform=smoothstep(.38,1.0,uExit);p/=mix(1.0,6.6,transform);p=rotate2d(p,mix(0.0,PI/16.0,transform));p.y+=mix(0.0,.1,transform);float track=(1.0-step(p.x,-.3))*(1.0-step(.3,p.x))*(1.0-step(p.y,-.05))*(1.0-step(.05,p.y));float fill=track*(1.0-step(-.3+.6*uProgress,p.x));float logo=mark(p*3.8);float loading=1.0-step(.999,uProgress);float shape=track*loading+logo*(1.0-loading);vec3 navy=vec3(.006,.012,.026);vec3 mineral=vec3(.22,.56,.55);vec3 paper=vec3(.96,.97,.92);vec3 trackColor=vec3(.035,.08,.14)*track*loading;vec3 fillColor=mineral*fill*loading;vec3 logoColor=paper*logo*(1.0-loading);float alpha=1.0-smoothstep(.76,1.0,uExit);gl_FragColor=vec4(mix(navy,trackColor+fillColor+logoColor,clamp(shape,0.0,1.0)),alpha);}
 `;
 
 const assets = [
@@ -41,6 +41,8 @@ const ExperiencePreloader = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [mounted, setMounted] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [gestureReady, setGestureReady] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -51,11 +53,16 @@ const ExperiencePreloader = () => {
     let disposed = false;
     let raf = 0;
     let renderer: THREE.WebGLRenderer | null = null;
+    let resizePixelRatio: (() => void) | null = null;
     let material: THREE.ShaderMaterial | null = null;
     let geometry: THREE.PlaneGeometry | null = null;
     let current = 0;
     let target = 0.02;
     let exit = 0;
+    let hasBegunExit = false;
+    let inputReady = false;
+    let gestureProgress = 0;
+    let touchLastY = 0;
     let last = performance.now();
     const loadedByAsset = new Map<string, number>();
     const totalBytes = assets.reduce((sum, asset) => sum + asset.bytes, 0);
@@ -100,21 +107,67 @@ const ExperiencePreloader = () => {
       }, 12_000);
     });
 
+    const gestureTravel = () => Math.max(1, window.innerHeight * 6.5);
+    const mapGestureToCloud = (value: number) => {
+      const progress = THREE.MathUtils.clamp(value, 0, 1);
+      if (progress < 1 / 3) return THREE.MathUtils.smoothstep(progress, 0, 1 / 3) * 0.3;
+      if (progress < 2 / 3) return 0.3 + THREE.MathUtils.smoothstep(progress, 1 / 3, 2 / 3) * 0.38;
+      return 0.68 + THREE.MathUtils.smoothstep(progress, 2 / 3, 1) * 0.32;
+    };
+    const applyGesture = (distance: number) => {
+      if (experienceState.entered) return;
+      const forwardDistance = Math.max(0, distance);
+      if (forwardDistance <= 0) return;
+      gestureProgress = THREE.MathUtils.clamp(gestureProgress + forwardDistance / gestureTravel(), 0, 1);
+      experienceState.setCloudProgress(mapGestureToCloud(gestureProgress));
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (experienceState.entered) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
+      const normalizedDelta = THREE.MathUtils.clamp(event.deltaY * multiplier, -window.innerHeight * 0.9, window.innerHeight * 0.9);
+      applyGesture(normalizedDelta);
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches[0]) touchLastY = event.touches[0].clientY;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (experienceState.entered || !event.touches[0]) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const currentY = event.touches[0].clientY;
+      applyGesture(touchLastY - currentY);
+      touchLastY = currentY;
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (experienceState.entered) return;
+      if (event.key === "ArrowUp" || event.key === "PageUp" || event.key === "Home") {
+        event.preventDefault();
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "PageDown" && event.key !== " ") return;
+      event.preventDefault();
+      applyGesture(window.innerHeight);
+    };
+
     const preload = async () => {
       await Promise.allSettled(assets.map(loadAsset));
       experienceState.markReady("assets");
       target = Math.max(target, 0.86);
-      await Promise.allSettled([
+      target = 1;
+      void Promise.allSettled([
         document.fonts?.ready ?? Promise.resolve(),
         waitForRuntime(["cloud", "water", "fluid"]),
         import("@/components/effects/LusionConnectors"),
       ]);
-      target = 1;
     };
 
     try {
       renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      resizePixelRatio = () => renderer?.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5 * experienceState.renderScale));
+      resizePixelRatio();
+      window.addEventListener("kingshill:render-scale", resizePixelRatio);
       const scene = new THREE.Scene();
       const camera = new THREE.Camera();
       geometry = new THREE.PlaneGeometry(2, 2);
@@ -133,6 +186,10 @@ const ExperiencePreloader = () => {
       };
       resize();
       window.addEventListener("resize", resize, { passive: true });
+      window.addEventListener("wheel", onWheel, { passive: false, capture: true });
+      window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
+      window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
+      window.addEventListener("keydown", onKeyDown, { capture: true });
 
       const frame = (now: number) => {
         if (disposed || !renderer || !material) return;
@@ -140,16 +197,36 @@ const ExperiencePreloader = () => {
         last = now;
         current += (target - current) * (1 - Math.exp(-dt * 8));
         if (target >= 1 && current > 0.998) current = 1;
-        if (current >= 1) exit = Math.min(1, exit + dt * 0.72);
+        if (current >= 1 && !inputReady) {
+          inputReady = true;
+          setGestureReady(true);
+          experienceState.setCloudProgress(mapGestureToCloud(gestureProgress));
+        }
+        if (inputReady && gestureProgress >= 1 && !hasBegunExit) {
+          hasBegunExit = true;
+          experienceState.setEntered(true);
+        }
+
+        if (experienceState.entered) {
+          exit = Math.min(1, exit + dt * 0.82);
+          setIsExiting(true);
+        }
+
         material.uniforms.uProgress.value = current;
         material.uniforms.uExit.value = exit;
         if (counterRef.current) counterRef.current.textContent = Math.round(current * 100).toString().padStart(3, "0");
         overlay.style.setProperty("--loader-exit", String(exit));
         renderer.render(scene, camera);
+
         if (exit >= 1) {
           document.documentElement.classList.remove("kh-is-loading");
           document.body.classList.add("kh-experience-ready");
           window.removeEventListener("resize", resize);
+          if (resizePixelRatio) window.removeEventListener("kingshill:render-scale", resizePixelRatio);
+          window.removeEventListener("wheel", onWheel, { capture: true });
+          window.removeEventListener("touchstart", onTouchStart, { capture: true });
+          window.removeEventListener("touchmove", onTouchMove, { capture: true });
+          window.removeEventListener("keydown", onKeyDown, { capture: true });
           renderer.dispose();
           geometry?.dispose();
           material?.dispose();
@@ -171,6 +248,11 @@ const ExperiencePreloader = () => {
       renderer?.dispose();
       geometry?.dispose();
       material?.dispose();
+      if (resizePixelRatio) window.removeEventListener("kingshill:render-scale", resizePixelRatio);
+      window.removeEventListener("wheel", onWheel, { capture: true });
+      window.removeEventListener("touchstart", onTouchStart, { capture: true });
+      window.removeEventListener("touchmove", onTouchMove, { capture: true });
+      window.removeEventListener("keydown", onKeyDown, { capture: true });
       document.documentElement.classList.remove("kh-is-loading");
     };
   }, []);
@@ -191,11 +273,28 @@ const ExperiencePreloader = () => {
   };
 
   return (
-    <div ref={overlayRef} className="kh-loader" role="status" aria-live="polite" aria-label="Loading the Kingshill experience">
+    <div
+      ref={overlayRef}
+      className={`kh-loader ${isExiting ? "is-exiting" : ""}`}
+      role="status"
+      aria-live="polite"
+      aria-label="Loading the Kingshill experience"
+    >
       <canvas ref={canvasRef} aria-hidden="true" />
-      <div className="kh-loader__brand"><strong>Kingshill</strong><span>School of Discovery</span></div>
-      <div className="kh-loader__status"><span>Loading</span><i /></div>
+      <div className="kh-loader__brand">
+        <strong>Kingshill</strong>
+        <span>School of Discovery</span>
+      </div>
+
+      <div className="kh-loader__main">
+        <div className="kh-loader__status">
+          <span>{isExiting ? "Entering" : gestureReady ? "Scroll forward to enter" : "Loading"}</span>
+          <i />
+        </div>
+      </div>
+
       <span ref={counterRef} className="kh-loader__counter">000</span>
+
       <button type="button" className="kh-loader__sound" onClick={toggleSound} aria-pressed={soundEnabled}>
         <span aria-hidden="true"><i /><i /><i /></span><b>Sound {soundEnabled ? "on" : "off"}</b>
       </button>

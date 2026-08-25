@@ -1,18 +1,18 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import LogoImage from "@/assets/kingshill-logo-official.webp";
-import CommunityImage from "@/assets/img-20250827-wa0023.jpg";
-import LeadersImage from "@/assets/img-20250827-wa0020-1.jpg";
 import LiquidButton from "@/components/effects/LiquidButton";
 import InteractiveImage from "@/components/effects/InteractiveImage";
-import FooterWordmarkScene from "@/components/effects/FooterWordmarkScene";
-import TestimonialShaderBackground from "@/components/effects/TestimonialShaderBackground";
+import useBrandGlassShine from "@/components/effects/useBrandGlassShine";
+import LogoImage from "@/assets/kingshill-logo-official.webp";
+const FooterWordmarkScene = lazy(() => import("@/components/effects/FooterWordmarkScene"));
+const FooterShaderBackground = lazy(() => import("@/components/effects/FooterShaderBackground"));
+const TestimonialShaderBackground = lazy(() => import("@/components/effects/TestimonialShaderBackground"));
 import { experienceState } from "@/experience/state";
 import "@/components/HomeExperience.css";
 
-const ClarityWaterScene = lazy(() => import("@/components/effects/ClarityWaterScene"));
 const CloudPrelude = lazy(() => import("@/experience/CloudPrelude"));
-const LusionConnectors = lazy(() => import("@/components/effects/LusionConnectors"));
+const LusionHero = lazy(() => import("@/components/effects/LusionHero"));
+const KingshillPassage = lazy(() => import("@/components/effects/KingshillPassage"));
 
 const programmes = [
   {
@@ -61,21 +61,8 @@ const testimonials = [
 
 const HomeExperience = () => {
   const pageRef = useRef<HTMLDivElement | null>(null);
+  useBrandGlassShine();
   const [activeProgramme, setActiveProgramme] = useState(0);
-
-  useEffect(() => {
-    const page = pageRef.current;
-    if (!page || experienceState.reducedMotion) return;
-    let frame = 0;
-    const move = () => {
-      page.style.setProperty("--home-pointer-x", String(experienceState.pointer.smoothNdcX));
-      page.style.setProperty("--home-pointer-y", String(experienceState.pointer.smoothNdcY));
-      page.style.setProperty("--home-pointer-speed", String(experienceState.pointer.smoothSpeed));
-      frame = requestAnimationFrame(move);
-    };
-    frame = requestAnimationFrame(move);
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -84,7 +71,24 @@ const HomeExperience = () => {
     let frame = 0;
     const updateProgress = () => {
       const maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
-      page.style.setProperty("--page-progress", `${Math.min(window.scrollY / maxScroll, 1)}`);
+      const pageProgress = Math.min(window.scrollY / maxScroll, 1);
+      page.style.setProperty("--page-progress", `${pageProgress}`);
+      const sections = Array.from(page.querySelectorAll<HTMLElement>(".kh2-section, .kh2-footer-zone"));
+      let activeSectionIndex = 0;
+      let activeLocal = 0;
+      sections.forEach((section, index) => {
+        const rect = section.getBoundingClientRect();
+        const local = Math.max(0, Math.min(1, (window.innerHeight - rect.top) / Math.max(window.innerHeight + rect.height, 1)));
+        section.style.setProperty("--section-progress", local.toFixed(4));
+        if (rect.top <= window.innerHeight * 0.56) { activeSectionIndex = index; activeLocal = local; }
+      });
+      const chapters = ["HERO", "DISCOVERY", "PATHWAYS", "PROOF", "EPILOGUE"] as const;
+      const chapterIndex = experienceState.entered ? Math.min(chapters.length - 1, activeSectionIndex) : 0;
+      const chapter = experienceState.entered ? chapters[chapterIndex] : "ENTRY";
+      const chapterEnergy = Math.min(1, Math.abs(experienceState.scroll.velocity) / 120 + experienceState.pointer.smoothSpeed * 0.25);
+      experienceState.setChapter(chapter, activeLocal, Math.min(1, Math.abs(0.5 - activeLocal) * 2), chapterEnergy);
+      page.style.setProperty("--chapter-progress", String(experienceState.chapter.progress));
+      page.style.setProperty("--chapter-energy", String(experienceState.chapter.energy));
       frame = 0;
     };
     const onScroll = () => {
@@ -106,50 +110,30 @@ const HomeExperience = () => {
       <Suspense fallback={<div className="kh-cloud-prelude" aria-hidden="true" />}>
         <CloudPrelude />
       </Suspense>
+      <Suspense fallback={null}>
+        <KingshillPassage />
+      </Suspense>
 
-      <section id="opening" className="kh2-hero kh-hero--clarity" aria-labelledby="home-title">
-        <Suspense
-          fallback={(
-            <div className="kh-clarity-scene" aria-hidden="true">
-              <div className="kh-clarity-scene__fallback" />
-            </div>
-          )}
-        >
-          <ClarityWaterScene />
-        </Suspense>
-        <div className="kh2-hero__grade" aria-hidden="true" />
-        <div className="kh2-shell kh2-hero__layout">
-          <div className="kh2-eyebrow kh2-hero__eyebrow">
-            <span>01</span>
-            <p>Nigeria’s first registered coaching academy</p>
+            <section id="opening" className="kh2-hero kh2-hero--lusion" aria-labelledby="home-title">
+        <div className="kh-lusion-hero__shell">
+          <div className="kh-lusion-hero__eyebrow"><span>01</span><p>Nigeria&apos;s first registered coaching academy</p></div>
+          <div className="kh-lusion-hero__caption">We create people who see further,<br />lead with purpose, and build what matters.</div>
+          <div className="kh-lusion-hero__scene">
+            <Suspense fallback={<div className="kh-lusion-hero__scene-fallback" aria-hidden="true" />}>
+              <LusionHero />
+            </Suspense>
           </div>
-
-          <h1 id="home-title" className="kh2-hero__title">
-            <span>Discover purpose.</span>
-            <span>Discover life.</span>
-          </h1>
-          <div className="kh2-hero__reflection" aria-hidden="true">
-            <span>Discover purpose.</span>
-            <span>Discover life.</span>
-          </div>
-
-          <div className="kh2-hero__intro">
-            <p>At KingsHill, We Unlock Potential. We Raise Builders and Reformers.</p>
-            <div className="kh2-actions">
-              <LiquidButton className="kh2-button kh2-button--gold" to="/training">
-                Explore programmes <span aria-hidden="true">↗</span>
-              </LiquidButton>
-              <a className="kh2-text-link" href="#perspective">
-                Meet Kingshill <span aria-hidden="true">↓</span>
-              </a>
+          <div className="kh-lusion-hero__bottom">
+            <h1 id="home-title"><span>Discover purpose.</span><span>Discover life.</span></h1>
+            <div className="kh-lusion-hero__statement">
+              <p>At KingsHill, We Unlock Potential. We Raise Builders and Reformers.</p>
+              <div className="kh2-actions">
+                <LiquidButton className="kh2-button kh2-button--gold" to="/training">Explore programmes <span aria-hidden="true">↗</span></LiquidButton>
+                <a className="kh2-text-link kh2-text-link--dark" href="#perspective">Meet Kingshill <span aria-hidden="true">↓</span></a>
+              </div>
             </div>
           </div>
-
-          <div className="kh2-hero__foot">
-            <span>CCC accredited</span>
-            <span>Lagos · Since 1999</span>
-            <span className="kh2-hero__gesture">Life Transformation &amp; Social Development</span>
-          </div>
+          <div className="kh-lusion-hero__foot"><span>CCC accredited</span><span>Lagos · Since 1999</span><span>Life Transformation &amp; Social Development</span></div>
         </div>
       </section>
 
@@ -169,7 +153,7 @@ const HomeExperience = () => {
                 src="/IMG-20250827-WA0019.webp"
                 alt="A Kingshill facilitator speaking at a professional development event"
               />
-              <figcaption>We Make You See The Future and Secure it.</figcaption>
+              <figcaption className="kh2-perspective__anchor" data-typography-anchor>We Make You See The Future and Secure it.</figcaption>
             </figure>
 
             <div className="kh2-perspective__copy" data-reveal="rise">
@@ -211,6 +195,7 @@ const HomeExperience = () => {
                   key={programme.title}
                   to="/training"
                   className={`kh2-programme ${activeProgramme === index ? "is-active" : ""}`}
+                  style={{ "--programme-distance": Math.abs(index - activeProgramme) } as React.CSSProperties}
                   onMouseEnter={() => setActiveProgramme(index)}
                   onFocus={() => setActiveProgramme(index)}
                   aria-label={`Explore ${programme.title}`}
@@ -220,98 +205,93 @@ const HomeExperience = () => {
                     <strong>{programme.title}</strong>
                     <span>{programme.copy}</span>
                   </span>
-                  <span className="kh2-programme__meta">{programme.meta}</span>
                   <span className="kh2-programme__arrow" aria-hidden="true">↗</span>
                 </Link>
               ))}
             </div>
 
-            <div className="kh2-programmes__visual" data-reveal="drift" aria-live="polite">
-              <InteractiveImage
-                key={programmes[activeProgramme].image}
-                src={programmes[activeProgramme].image}
-                alt={`${programmes[activeProgramme].title} at Kingshill`}
-                className="kh2-programmes__image"
-              >
-                <div className="kh2-programmes__caption">
-                  <span>Training program</span>
-                  <strong>{programmes[activeProgramme].title}</strong>
-                </div>
-              </InteractiveImage>
+            <div className="kh2-programmes__signal" data-brand-glass data-reveal="drift" aria-live="polite" style={{ "--program-angle": `${activeProgramme * 90}deg` } as React.CSSProperties}>
+              <div className="kh2-programmes__signal-index"><strong>{String(activeProgramme + 1).padStart(2, "0")}</strong></div>
+              <div className="kh2-programmes__signal-copy"><h3>{programmes[activeProgramme].title}</h3><p>{programmes[activeProgramme].copy}</p><Link to="/training" className="kh2-programmes__signal-link">View programme <span aria-hidden="true">↗</span></Link></div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="connectors" className="kh2-connectors" aria-label="Interactive connector field">
-        <Suspense fallback={<div className="kh-lusion-connectors" aria-hidden="true" />}>
-          <LusionConnectors />
-        </Suspense>
-      </section>
-
-      <section id="contact" className="kh2-finale" aria-label="Kingshill alumni and contact information">
+      <section id="contact" className="kh2-finale" aria-label="Kingshill client stories and academy details">
         <div className="kh2-section kh2-proof">
-          <TestimonialShaderBackground />
+          <Suspense fallback={null}><TestimonialShaderBackground /></Suspense>
           <div className="kh2-shell">
-            <div className="kh2-section-head" data-reveal="clip">
-              <div className="kh2-eyebrow kh2-eyebrow--dark"><span>05</span><p>Kingshill Alumni</p></div>
-              <h2>Meet some of our 1000+ graduates</h2>
+            <div className="kh2-proof-intro" data-reveal="clip">
+              <div className="kh2-eyebrow kh2-eyebrow--dark"><span>04</span><p>Client stories</p></div>
+              <h2>What changes<br /><em>after Kingshill.</em></h2>
             </div>
-            <div className="kh2-testimonials" data-reveal="focus">
-              {testimonials.map((testimonial, index) => (
-                <article key={testimonial.name} className="kh2-testimonial" data-cursor="text">
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <blockquote>“{testimonial.quote}”</blockquote>
-                  <footer><strong>{testimonial.name}</strong><small>{testimonial.role}</small></footer>
-                </article>
-              ))}
-            </div>
-            <div className="kh2-proof__gallery" data-reveal="drift">
-              <figure className="kh2-proof__main-image"><InteractiveImage src={CommunityImage} alt="Participants gathered for a Kingshill-supported learning session" /></figure>
-              <figure className="kh2-proof__side-image"><InteractiveImage src={LeadersImage} alt="Leaders at a Kingshill partner event in Nigeria" /></figure>
-              <p>We love keeping in touch with our students after they have graduated and celebrating their success stories and transformative journeys.</p>
+            <div className="kh2-client-signal" data-reveal="focus">
+              <div className="kh2-client-signal__lead" data-cursor="text">
+                <div className="kh2-client-signal__lead-top"><span>01</span><span>Client record</span></div>
+                <blockquote>“{testimonials[0].quote}”</blockquote>
+                <footer><strong>{testimonials[0].name}</strong><small>{testimonials[0].role}</small></footer>
+              </div>
+              <div className="kh2-client-signal__archive">
+                <div className="kh2-client-signal__archive-label"><span>Voices in motion</span><i aria-hidden="true">↗</i></div>
+                {testimonials.slice(1).map((testimonial, index) => (
+                  <article key={testimonial.name} className="kh2-client-record" data-cursor="text">
+                    <div className="kh2-client-record__top"><span>{String(index + 2).padStart(2, "0")}</span><span>{testimonial.role}</span></div>
+                    <blockquote>“{testimonial.quote}”</blockquote>
+                    <footer><strong>{testimonial.name}</strong></footer>
+                  </article>
+                ))}
+              </div>
             </div>
             <div className="kh2-stats" data-reveal="rise">
               <div><strong>25+</strong><span>Years of Excellence</span></div>
-              <div><strong>1,000+</strong><span>Graduates</span></div>
+              <div><strong>1,000+</strong><span>People reached</span></div>
               <div><strong>CCC</strong><span>Accredited</span></div>
             </div>
           </div>
         </div>
-        <div className="kh2-footer-zone">
+        <footer className="kh2-footer-zone">
+          <Suspense fallback={null}><FooterShaderBackground /></Suspense>
           <div className="kh2-shell">
-          <div className="kh2-contact-grid">
-            <div>
-              <span className="kh2-contact-grid__label">Visit</span>
-              <address>14 Adedotun Dina Street<br />Mende–Maryland, Lagos</address>
+            <div className="kh2-footer__masthead">
+              <div className="kh2-footer__identity">
+                <span className="kh2-footer__utility-label">Kingshill / Lagos</span>
+                <div className="kh2-footer__closing">
+                  <h2 className="kh2-footer__closing-fallback">See further.<br /><em>Lead with purpose.</em></h2>
+                </div>
+                <p>Coaching education for people, teams, and organisations ready to move with clarity.</p>
+              </div>
+              <div className="kh2-footer__signature" aria-hidden="true"><Suspense fallback={null}><FooterWordmarkScene /></Suspense></div>
             </div>
-            <div>
-              <span className="kh2-contact-grid__label">Talk</span>
-              <a href="tel:+2349090550072">+234 909 055 0072</a>
-              <a href="tel:+2349090550073">+234 909 055 0073</a>
-            </div>
-            <div>
-              <span className="kh2-contact-grid__label">Write</span>
-              <a href="mailto:pg@thecoachingnations.com">pg@thecoachingnations.com</a>
-            </div>
-          </div>
 
-          <footer className="kh2-footer">
-            <Link to="/" className="kh2-footer__brand" aria-label="Kingshill School of Discovery home">
-              <img src={LogoImage} alt="" />
-              <span><strong>Kingshill</strong><small>School of Discovery</small></span>
-            </Link>
-            <nav aria-label="Footer navigation">
-              <Link to="/about">About</Link>
-              <Link to="/training">Training</Link>
-              <Link to="/faculty">Faculty</Link>
-              <Link to="/contact">Contact</Link>
-            </nav>
-            <p>© 2026 Kingshill School of Discovery</p>
-          </footer>
-          <FooterWordmarkScene />
+            <div className="kh2-footer__directory" data-brand-glass>
+              <div className="kh2-footer__directory-column kh2-footer__directory-column--programmes">
+                <span className="kh2-footer__utility-label">Our programmes</span>
+                {programmes.map((programme) => <Link key={programme.title} to="/training">{programme.title}</Link>)}
+              </div>
+              <div className="kh2-footer__directory-column">
+                <span className="kh2-footer__utility-label">Contact us</span>
+                <address>14 Adedotun Dina Street<br />Mende–Maryland, Lagos</address>
+                <a href="tel:+2349090550072">+234 909 055 0072</a>
+                <a href="tel:+2349090550073">+234 909 055 0073</a>
+                <a href="mailto:pg@thecoachingnations.com">pg@thecoachingnations.com</a>
+              </div>
+              <div className="kh2-footer__directory-column kh2-footer__directory-column--social">
+                <span className="kh2-footer__utility-label">Follow Kingshill</span>
+                <a href="https://facebook.com/kingshillcoaching" target="_blank" rel="noreferrer">Facebook <span aria-hidden="true">↗</span></a>
+                <a href="https://instagram.com/kingshillcoaching" target="_blank" rel="noreferrer">Instagram <span aria-hidden="true">↗</span></a>
+                <a href="https://linkedin.com/company/kingshillcoaching" target="_blank" rel="noreferrer">LinkedIn <span aria-hidden="true">↗</span></a>
+              </div>
+            </div>
+
+            <div className="kh2-footer__base">
+              <span>Nigeria&apos;s first registered coaching academy</span>
+              <span>CCC accredited</span>
+              <span>Lagos · Since 1999</span>
+              <span>Life Transformation &amp; Social Development</span>
+            </div>
           </div>
-        </div>
+        </footer>
       </section>
     </div>
   );

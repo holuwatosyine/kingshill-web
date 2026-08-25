@@ -83,11 +83,6 @@ const seededRandom = (seed: number) => {
   };
 };
 
-const cloudWriting = [
-  "At KingsHill, We Unlock Potential.",
-  "We Raise Builders and Reformers.",
-];
-
 const CloudPrelude = () => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -100,7 +95,6 @@ const CloudPrelude = () => {
     let visible = true;
     let documentVisible = !document.hidden;
     let scrollEnergy = 0;
-    let previousProgress = 0;
 
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, powerPreference: "high-performance" });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -188,18 +182,13 @@ const CloudPrelude = () => {
       sparks[index * 3 + 2] = 31 - sparkRandom() * 48;
     }
     sparksGeometry.setAttribute("position", new THREE.BufferAttribute(sparks, 3));
-    const sparksMaterial = new THREE.PointsMaterial({ color: 0xf4c86e, size: 0.075, sizeAttenuation: true, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending });
+    const sparksMaterial = new THREE.PointsMaterial({ color: 0xb8d9ca, size: 0.075, sizeAttenuation: true, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending });
     const sparkField = new THREE.Points(sparksGeometry, sparksMaterial);
     scene.add(sparkField);
 
     const updateScroll = () => {
-      const rect = root.getBoundingClientRect();
-      const distance = Math.max(1, root.offsetHeight - window.innerHeight);
-      const progress = THREE.MathUtils.clamp(-rect.top / distance, 0, 1);
-      scrollEnergy = Math.min(1, scrollEnergy + Math.abs(progress - previousProgress) * 34);
-      previousProgress = progress;
-      experienceState.setCloudProgress(progress);
-      root.style.setProperty("--cloud-progress", String(progress));
+      // The cloud belongs to the preloader only. Keep this hook for lifecycle
+      // compatibility, but never couple the scene to homepage scroll.
     };
     const resize = () => {
       const width = Math.max(1, canvas.clientWidth);
@@ -208,38 +197,57 @@ const CloudPrelude = () => {
       camera.fov = width < 720 ? 47 : 40;
       camera.updateProjectionMatrix();
       const dprCap = experienceState.quality === "high" ? 1.6 : experienceState.quality === "medium" ? 1.35 : 1.15;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap * experienceState.renderScale));
       renderer.setSize(width, height, false);
     };
 
     const startedAt = performance.now();
     let previousFrame = startedAt;
+    let exitProgress = 0;
     const animate = () => {
       if (disposed || !visible || !documentVisible) return;
       const now = performance.now();
       const delta = Math.min(0.05, Math.max(0.001, (now - previousFrame) / 1000));
       const elapsed = (now - startedAt) / 1000;
       previousFrame = now;
-      const progress = experienceState.reducedMotion ? 0.42 : experienceState.scroll.cloudProgress;
+
+      // The preloader owns the full cloud passage. Each captured gesture moves
+      // the camera deeper through the cloud path; completion then starts the dissolve.
+      const gestureProgress = experienceState.scroll.cloudProgress;
+      if (experienceState.entered) {
+        exitProgress = Math.min(1, exitProgress + delta * 0.82);
+      }
+      const progress = experienceState.reducedMotion ? 0.42 : Math.min(0.96, gestureProgress * 0.94 + elapsed * 0.012);
       const pointer = experienceState.pointer;
+
       curve.getPointAt(Math.min(1, progress), cameraPoint);
       curve.getPointAt(Math.min(1, progress + 0.045), lookPoint);
+
       cameraTarget.copy(cameraPoint);
       cameraTarget.x += (experienceState.reducedMotion ? 0 : pointer.smoothNdcX) * 0.18;
       cameraTarget.y += (experienceState.reducedMotion ? 0 : pointer.smoothNdcY) * 0.12;
       camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 5.2));
+
       lookPoint.x += pointer.smoothNdcX * 0.34;
       lookPoint.y += pointer.smoothNdcY * 0.2;
       camera.lookAt(lookPoint);
+
       uniforms.uTime.value = experienceState.reducedMotion ? 0 : elapsed;
       uniforms.uProgress.value = progress;
       uniforms.uEnergy.value = scrollEnergy + pointer.smoothSpeed * 0.45;
-      uniforms.uDissolve.value = THREE.MathUtils.smoothstep(progress, 0.82, 1);
+      uniforms.uDissolve.value = exitProgress;
+
       scene.fog!.color.lerpColors(new THREE.Color(0xb9d9ff), new THREE.Color(0xcadfdf), THREE.MathUtils.smoothstep(progress, 0.68, 1));
-      sparksMaterial.opacity = (1 - THREE.MathUtils.smoothstep(progress, 0.64, 0.9)) * 0.45;
+      sparksMaterial.opacity = (1 - exitProgress) * 0.45;
       sparkField.rotation.y = elapsed * 0.006;
+
       scrollEnergy = THREE.MathUtils.damp(scrollEnergy, 0, 3.6, delta);
       renderer.render(scene, camera);
+
+      if (exitProgress >= 1) {
+        visible = false;
+        root.style.display = "none";
+      }
     };
     renderer.setAnimationLoop(animate);
     const observer = new IntersectionObserver(([entry]) => {
@@ -253,6 +261,7 @@ const CloudPrelude = () => {
     observer.observe(root);
     window.addEventListener("scroll", updateScroll, { passive: true });
     window.addEventListener("resize", resize, { passive: true });
+    window.addEventListener("kingshill:render-scale", resize);
     document.addEventListener("visibilitychange", onVisibility);
     updateScroll();
     resize();
@@ -264,6 +273,7 @@ const CloudPrelude = () => {
       observer.disconnect();
       window.removeEventListener("scroll", updateScroll);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("kingshill:render-scale", resize);
       document.removeEventListener("visibilitychange", onVisibility);
       meshes.forEach((mesh) => mesh.geometry.dispose());
       material.dispose();
@@ -275,26 +285,11 @@ const CloudPrelude = () => {
   }, []);
 
   return (
-    <div ref={rootRef} className="kh-cloud-prelude" aria-hidden="true">
+    <div ref={rootRef} className="kh-cloud-prelude kh-cloud-prelude--fixed" aria-hidden="true">
       <div className="kh-cloud-prelude__sticky">
         <div className="kh-cloud-prelude__sky" />
         <canvas ref={canvasRef} />
-        <div className="kh-cloud-writing">
-          <div aria-hidden="true">
-            {cloudWriting.map((line, lineIndex) => (
-              <span className="kh-cloud-writing__line" key={line}>
-                {Array.from(line).map((character, characterIndex) => (
-                  <i
-                    key={`${lineIndex}-${characterIndex}`}
-                    style={{ "--write-delay": `${0.18 + lineIndex * 0.84 + characterIndex * 0.026}s` } as React.CSSProperties}
-                  >
-                    {character === " " ? "\u00A0" : character}
-                  </i>
-                ))}
-              </span>
-            ))}
-          </div>
-        </div>
+
         <div className="kh-cloud-prelude__veil" />
       </div>
     </div>

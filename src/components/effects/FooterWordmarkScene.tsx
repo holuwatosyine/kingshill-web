@@ -17,9 +17,9 @@ void main(){
   vec2 direction=normalize(p.xy-uPointer+vec2(.0001));
   float pressure=exp(-distanceToPointer*7.5)*uEnergy;
   p.xy+=direction*pressure*.16;
-  p.z+=sin(uTime*.75+aSeed*31.0)*.012*uAssemble;
+  p.z+=sin(uTime*.46+aSeed*31.0)*.012*uAssemble;
   gl_Position=vec4(p,1.0);
-  gl_PointSize=(1.15+uEnergy*1.4+sin(aSeed*18.0+uTime)*.18)*uDpr;
+  gl_PointSize=(1.38+uEnergy*1.5+sin(aSeed*18.0+uTime*.46)*.12)*uDpr;
   vSeed=aSeed;
 }`;
 
@@ -30,10 +30,10 @@ void main(){
   float radius=length(point);
   if(radius>.5)discard;
   float soft=1.0-smoothstep(.22,.5,radius);
-  vec3 teal=vec3(.43,.78,.76);
-  vec3 gold=vec3(.84,.69,.28);
-  vec3 colour=mix(teal,gold,smoothstep(.18,.82,vSeed));
-  gl_FragColor=vec4(colour,soft*.94);
+  vec3 mineral=vec3(.78,1.0,.95);
+  vec3 ivory=vec3(1.0,.995,.94);
+  vec3 colour=mix(mineral,ivory,smoothstep(.18,.82,vSeed));
+  gl_FragColor=vec4(colour,soft);
 }`;
 
 const createParticleGeometry = (quality: "low" | "medium" | "high") => {
@@ -90,7 +90,8 @@ export const FooterWordmarkScene = () => {
 
     const resize = () => {
       if (!renderer || !material) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, experienceState.quality === "high" ? 1.6 : 1.2);
+      const qualityCap = experienceState.quality === "high" ? 1.6 : 1.2;
+      const dpr = Math.min(window.devicePixelRatio || 1, qualityCap * experienceState.renderScale);
       renderer.setPixelRatio(dpr);
       renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
       material.uniforms.uDpr.value = dpr;
@@ -103,7 +104,8 @@ export const FooterWordmarkScene = () => {
       const localX = ((experienceState.pointer.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1;
       const localY = -(((experienceState.pointer.clientY - rect.top) / Math.max(1, rect.height)) * 2 - 1);
       const inside = localX > -1.15 && localX < 1.15 && localY > -1.3 && localY < 1.3;
-      const targetEnergy = inside ? Math.min(1, experienceState.pointer.smoothSpeed * 1.8 + (experienceState.pointer.pressed ? 0.8 : 0)) : 0;
+      const chapterEnergy = experienceState.chapter.name === "EPILOGUE" ? experienceState.chapter.energy : experienceState.chapter.energy * 0.35;
+      const targetEnergy = inside ? Math.min(1, experienceState.pointer.smoothSpeed * 1.8 + (experienceState.pointer.pressed ? 0.8 : 0) + chapterEnergy * 0.3) : chapterEnergy * 0.1;
       assemble += (1 - assemble) * 0.045;
       material.uniforms.uTime.value = (performance.now() - startedAt) / 1000;
       material.uniforms.uAssemble.value = assemble;
@@ -146,12 +148,14 @@ export const FooterWordmarkScene = () => {
     };
 
     window.addEventListener("resize", resize, { passive: true });
+    window.addEventListener("kingshill:render-scale", resize);
     document.addEventListener("visibilitychange", onVisibility);
     void init();
 
     return () => {
       disposed = true;
       window.removeEventListener("resize", resize);
+      window.removeEventListener("kingshill:render-scale", resize);
       document.removeEventListener("visibilitychange", onVisibility);
       observer.disconnect();
       renderer?.setAnimationLoop(null);

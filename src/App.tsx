@@ -16,6 +16,7 @@ const Faculty = lazy(() => import("./pages/Faculty"));
 const Resources = lazy(() => import("./pages/Resources"));
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Contact = lazy(() => import("./pages/Contact"));
+const MaterialLab = lazy(() => import("./pages/MaterialLab"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/material-lab" element={<MaterialLab />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

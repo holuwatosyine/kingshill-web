@@ -70,8 +70,10 @@ html.kh-is-loading body {
   z-index: 300;
   overflow: hidden;
   color: #f2eddf;
-  background: #03102d;
+  background: #07090c;
   text-transform: uppercase;
+  touch-action: none;
+  overscroll-behavior: none;
   opacity: calc(1 - var(--loader-exit));
 }
 
@@ -93,11 +95,87 @@ html.kh-is-loading body {
 .kh-loader__sound[aria-pressed="true"] i:nth-child(3) { animation-delay: -0.52s; }
 .kh-loader__sound b { font: inherit; }
 
+/* Larger preloader audio control: a deliberate utility, not a tiny label. */
+.kh-loader__sound {
+  min-width: 142px;
+  min-height: 56px;
+  justify-content: center;
+  gap: 15px;
+  padding: 15px 20px;
+  border: 1px solid rgba(242, 237, 223, 0.42);
+  border-radius: 999px;
+  background: rgba(3, 23, 39, 0.2);
+  backdrop-filter: blur(12px);
+  font-size: 0.56rem;
+  transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+.kh-loader__sound:hover { background: rgba(3, 23, 39, 0.44); border-color: rgba(242, 237, 223, 0.78); transform: translateY(-2px); }
+.kh-loader__sound > span { height: 28px; gap: 4px; }
+.kh-loader__sound i { width: 3px; height: 7px; }
+.kh-loader__sound[aria-pressed="true"] i { height: 16px; }
+
+@media (max-width: 720px) {
+  .kh-loader__sound { right: 18px; bottom: 18px; min-width: 132px; min-height: 52px; padding-inline: 16px; }
+}
+
+.kh-loader__main {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 42px;
+  pointer-events: none;
+}
+
+.kh-loader__enter {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 32px;
+  background: #cdae3f;
+  color: #03102d;
+  border: none;
+  border-radius: 4px;
+  font: 750 0.78rem/1 "Geist KH", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: kh-enter-in 800ms 200ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  transition: transform 300ms ease, background 300ms ease;
+}
+
+.kh-loader__enter:hover {
+  background: #e5c55a;
+  transform: translateY(-2px);
+}
+
+.kh-loader__enter:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.kh-loader__enter svg {
+  transition: transform 300ms ease;
+}
+
+.kh-loader__enter:hover svg {
+  transform: translateX(4px);
+}
+
+@keyframes kh-enter-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .kh-cloud-prelude {
   --cloud-progress: 0;
   position: relative;
   z-index: 1;
-  height: 340svh;
+  height: 100svh;
   background: #cadfdf;
 }
 
@@ -231,8 +309,6 @@ html.kh-is-loading body {
   .kh-cloud-prelude { height: 150svh; }
   .kh-loader__status i,
   .kh-loader__sound i { animation: none !important; }
-  .kh-fluid-pointer { display: none !important; }
-  .kh-shader-cursor { display: none !important; }
   html:not(.kh-is-loading),
   html:not(.kh-is-loading) body,
   html:not(.kh-is-loading) a,
@@ -243,3 +319,34 @@ html.kh-is-loading body {
   .kh-magnetic { transform: none !important; translate: none !important; transition: none !important; }
   .kh-cloud-writing__line i { opacity: 1; transform: none; animation: none !important; }
 }
+
+
+/* CloudPrelude is a fixed, preloader-only atmosphere. Gesture progress changes the camera path; entry then dissolves it without adding homepage height. */
+.kh-cloud-prelude--fixed {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100%;
+  height: 100svh !important;
+  pointer-events: none;
+  background: transparent;
+}
+.kh-cloud-prelude--fixed .kh-cloud-prelude__sticky {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100svh;
+  opacity: 1;
+  will-change: opacity;
+}
+.kh-cloud-prelude--fixed .kh-cloud-prelude__veil {
+  opacity: 0;
+}
+.kh-cloud-prelude--fixed .kh-cloud-writing { display: none !important; }
+.kh-nav--home { position: fixed; z-index: 240; }
+
+/* Shared package-shader surface: the wrapper owns layout while Shader owns the WebGPU lifecycle. */
+.kh-shader-surface { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; }
+.kh-shader-surface > .shader { width: 100%; height: 100%; }
+.kh-shader-surface > .shader > canvas { width: 100%; height: 100%; display: block; }
+.kh-shader-cursor .kh-shader-surface { position: absolute; inset: 0; }

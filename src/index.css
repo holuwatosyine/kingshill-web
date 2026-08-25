@@ -719,11 +719,6 @@ video::-webkit-media-controls-volume-slider {
     box-shadow: 0 0 20px hsl(var(--coaching-gold) / 0.2);
   }
 
-  /* Reduce complex effects on mobile */
-  .animate-premium-glow {
-    animation: none;
-  }
-
   /* More minimal video controls on mobile */
   video::-webkit-media-controls-play-button {
     transform: scale(0.6) !important;

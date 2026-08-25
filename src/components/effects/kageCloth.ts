@@ -1,3 +1,5 @@
+import { experienceState } from "@/experience/state";
+
 type ClothHandle = { dispose: () => void; refresh: () => void };
 
 const SEGMENTS = 64;
@@ -166,7 +168,7 @@ export const createKageCloth = (
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
   };
   const syncSize = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.65);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.65 * experienceState.renderScale);
     output.width = Math.max(1, Math.round(output.clientWidth * dpr));
     output.height = Math.max(1, Math.round(output.clientHeight * dpr));
   };
@@ -285,6 +287,7 @@ export const createKageCloth = (
 
   let last = performance.now();
   const frame = (now: number) => {
+    frameHandle = 0;
     if (dead || !inView) { running = false; return; }
     const delta = Math.min((now - last) / 1000, 1 / 20);
     last = now;
@@ -324,11 +327,15 @@ export const createKageCloth = (
   const onPointerLeave = () => { pointer.inside = false; };
   wrapper.addEventListener("pointermove", onPointerMove, { passive: true });
   wrapper.addEventListener("pointerleave", onPointerLeave, { passive: true });
-  const resizeObserver = new ResizeObserver(() => { syncSize(); upload(); start(); });
+  const resizeObserver = new ResizeObserver(() => { syncSize(); window.requestAnimationFrame(syncSize); upload(); start(); });
   resizeObserver.observe(output);
+  const onRenderScale = () => { syncSize(); upload(); start(); };
+  window.addEventListener("kingshill:render-scale", onRenderScale);
   const intersectionObserver = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; if (inView) start(); });
   intersectionObserver.observe(output);
   syncSize();
+  window.requestAnimationFrame(syncSize);
+  window.setTimeout(syncSize, 0);
   upload();
   compose(Math.max(wrapper.clientWidth, 1), Math.max(wrapper.clientHeight, 1));
   draw();
@@ -341,6 +348,7 @@ export const createKageCloth = (
       wrapper.removeEventListener("pointermove", onPointerMove);
       wrapper.removeEventListener("pointerleave", onPointerLeave);
       resizeObserver.disconnect();
+      window.removeEventListener("kingshill:render-scale", onRenderScale);
       intersectionObserver.disconnect();
       gl.deleteTexture(texture);
       gl.deleteBuffer(gridBuffer);

@@ -25,11 +25,34 @@ const SubpageAtmosphere = () => {
     const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
     const position = gl.getAttribLocation(program, "p"); const resolution = gl.getUniformLocation(program, "r"); const mouse = gl.getUniformLocation(program, "m"); const time = gl.getUniformLocation(program, "t"); const scroll = gl.getUniformLocation(program, "s");
     gl.useProgram(program); gl.enableVertexAttribArray(position); gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-    const resize = () => { const dpr = Math.min(window.devicePixelRatio || 1, experienceState.quality === "high" ? 1.35 : 1); canvas.width = Math.max(1, Math.round(innerWidth*dpr)); canvas.height = Math.max(1, Math.round(innerHeight*dpr)); gl.viewport(0,0,canvas.width,canvas.height); };
-    let frame = 0; const started = performance.now();
-    const draw = (now: number) => { gl.uniform2f(resolution,canvas.width,canvas.height); gl.uniform2f(mouse,experienceState.pointer.clientX/Math.max(1,innerWidth),1-experienceState.pointer.clientY/Math.max(1,innerHeight)); gl.uniform1f(time,(now-started)/1000); gl.uniform1f(scroll,experienceState.scroll.progress); gl.drawArrays(gl.TRIANGLE_STRIP,0,4); frame=requestAnimationFrame(draw); };
-    addEventListener("resize",resize,{passive:true}); resize(); frame=requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(frame); removeEventListener("resize",resize); if(buffer)gl.deleteBuffer(buffer); gl.deleteShader(vs); gl.deleteShader(fs); gl.deleteProgram(program); };
+    const resize = () => { const dpr = Math.min(window.devicePixelRatio || 1, (experienceState.quality === "high" ? 1.35 : 1) * experienceState.renderScale); canvas.width = Math.max(1, Math.round(innerWidth*dpr)); canvas.height = Math.max(1, Math.round(innerHeight*dpr)); gl.viewport(0,0,canvas.width,canvas.height); };
+    let frame = 0;
+    let visible = true;
+    let documentVisible = !document.hidden;
+    const started = performance.now();
+    const draw = (now: number) => {
+      frame = 0;
+      if (!visible || !documentVisible) return;
+      gl.uniform2f(resolution,canvas.width,canvas.height);
+      gl.uniform2f(mouse,experienceState.pointer.clientX/Math.max(1,innerWidth),1-experienceState.pointer.clientY/Math.max(1,innerHeight));
+      gl.uniform1f(time,(now-started)/1000);
+      gl.uniform1f(scroll,experienceState.scroll.progress);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      frame=requestAnimationFrame(draw);
+    };
+    const syncLoop = () => {
+      if (!visible || !documentVisible) { if (frame) cancelAnimationFrame(frame); frame = 0; }
+      else if (!frame) frame = requestAnimationFrame(draw);
+    };
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; syncLoop(); }, { threshold: 0.01 });
+    const onVisibility = () => { documentVisible = !document.hidden; syncLoop(); };
+    observer.observe(canvas);
+    addEventListener("resize",resize,{passive:true});
+    addEventListener("kingshill:render-scale",resize);
+    document.addEventListener("visibilitychange",onVisibility);
+    resize();
+    frame=requestAnimationFrame(draw);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); removeEventListener("resize",resize); removeEventListener("kingshill:render-scale",resize); document.removeEventListener("visibilitychange",onVisibility); if(buffer)gl.deleteBuffer(buffer); gl.deleteShader(vs); gl.deleteShader(fs); gl.deleteProgram(program); };
   }, []);
   return <canvas ref={ref} className="kh-subpage-atmosphere" aria-hidden="true" />;
 };
@@ -39,12 +62,48 @@ const ExperienceRuntime = () => {
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
+    const tracked = new Map<HTMLCanvasElement, { lost: EventListener; restored: EventListener }>();
+    const scan = () => {
+      document.querySelectorAll<HTMLCanvasElement>("canvas").forEach((canvas) => {
+        if (tracked.has(canvas)) return;
+        const lost: EventListener = (event) => {
+          event.preventDefault();
+          window.dispatchEvent(new CustomEvent("kingshill:webgl-context-lost", { detail: { canvas } }));
+          if (import.meta.env.DEV) console.warn("[Kingshill] WebGL context lost", canvas);
+        };
+        const restored: EventListener = () => {
+          window.dispatchEvent(new CustomEvent("kingshill:webgl-context-restored", { detail: { canvas } }));
+          if (import.meta.env.DEV) console.info("[Kingshill] WebGL context restored", canvas);
+        };
+        canvas.addEventListener("webglcontextlost", lost, { passive: false });
+        canvas.addEventListener("webglcontextrestored", restored);
+        tracked.set(canvas, { lost, restored });
+      });
+    };
+    scan();
+    const observer = new MutationObserver(scan);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      tracked.forEach((handlers, canvas) => {
+        canvas.removeEventListener("webglcontextlost", handlers.lost);
+        canvas.removeEventListener("webglcontextrestored", handlers.restored);
+      });
+      tracked.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     const root = document.documentElement;
     let raf = 0;
     let previous = performance.now();
     let activeType: HTMLElement | null = null;
     let activeAction: HTMLElement | null = null;
     let activeImage: HTMLElement | null = null;
+    let touchLastX = 0;
+    let touchLastY = 0;
+    const supportsPointerEvents = "PointerEvent" in window;
+    let documentVisible = !document.hidden;
     const reducedMotion = experienceState.reducedMotion;
     const lenis = reducedMotion
       ? null
@@ -82,6 +141,11 @@ const ExperienceRuntime = () => {
     document.addEventListener("click", onAnchorClick);
 
     const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === "touch") {
+        experienceState.applyTouchDelta(event.clientX - touchLastX, event.clientY - touchLastY);
+        touchLastX = event.clientX;
+        touchLastY = event.clientY;
+      }
       experienceState.updatePointer(event.clientX, event.clientY, event.pointerType || "mouse");
       const interactive = (event.target as Element | null)?.closest("a, button, [data-cursor]");
       root.dataset.khCursor = interactive?.getAttribute("data-cursor") || (interactive ? "interactive" : "default");
@@ -108,11 +172,40 @@ const ExperienceRuntime = () => {
       }
     };
     const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "touch") {
+        touchLastX = event.clientX;
+        touchLastY = event.clientY;
+      }
       experienceState.pointer.pressed = true;
       experienceState.updatePointer(event.clientX, event.clientY, event.pointerType || "mouse");
       root.dataset.khPointerDown = "true";
     };
     const onPointerUp = () => {
+      experienceState.pointer.pressed = false;
+      touchLastX = 0;
+      touchLastY = 0;
+      root.dataset.khPointerDown = "false";
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      touchLastX = touch.clientX;
+      touchLastY = touch.clientY;
+      experienceState.pointer.pressed = true;
+      experienceState.updatePointer(touch.clientX, touch.clientY, "touch");
+      root.dataset.khPointerDown = "true";
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      const dx = touch.clientX - touchLastX;
+      const dy = touch.clientY - touchLastY;
+      touchLastX = touch.clientX;
+      touchLastY = touch.clientY;
+      experienceState.applyTouchDelta(dx, dy);
+      experienceState.updatePointer(touch.clientX, touch.clientY, "touch");
+    };
+    const onTouchEnd = () => {
       experienceState.pointer.pressed = false;
       root.dataset.khPointerDown = "false";
     };
@@ -127,8 +220,11 @@ const ExperienceRuntime = () => {
     };
 
     const frame = (now: number) => {
+      raf = 0;
+      if (!documentVisible) return;
       const delta = Math.min(0.05, Math.max(0.001, (now - previous) / 1000));
       previous = now;
+      const frameStarted = performance.now();
       lenis?.raf(now);
       experienceState.tick(delta);
       const pointer = experienceState.pointer;
@@ -137,7 +233,17 @@ const ExperienceRuntime = () => {
       root.style.setProperty("--kh-pointer-nx", String(pointer.smoothNdcX));
       root.style.setProperty("--kh-pointer-ny", String(pointer.smoothNdcY));
       root.style.setProperty("--kh-pointer-speed", String(pointer.smoothSpeed));
+      root.style.setProperty("--home-pointer-x", String(pointer.smoothNdcX));
+      root.style.setProperty("--home-pointer-y", String(pointer.smoothNdcY));
+      root.style.setProperty("--home-pointer-speed", String(pointer.smoothSpeed));
+      root.style.setProperty("--kh-render-scale", String(experienceState.renderScale));
+      experienceState.recordFrameTime(performance.now() - frameStarted);
       raf = window.requestAnimationFrame(frame);
+    };
+    const onVisibility = () => {
+      documentVisible = !document.hidden;
+      if (documentVisible && !raf) raf = window.requestAnimationFrame(frame);
+      if (!documentVisible && raf) { window.cancelAnimationFrame(raf); raf = 0; }
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -145,6 +251,13 @@ const ExperienceRuntime = () => {
     window.addEventListener("pointerup", onPointerUp, { passive: true });
     window.addEventListener("pointercancel", onPointerUp, { passive: true });
     window.addEventListener("pointerleave", onPointerLeave, { passive: true });
+    if (!supportsPointerEvents) {
+      window.addEventListener("touchstart", onTouchStart, { passive: true });
+      window.addEventListener("touchmove", onTouchMove, { passive: true });
+      window.addEventListener("touchend", onTouchEnd, { passive: true });
+      window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    }
+    document.addEventListener("visibilitychange", onVisibility);
     updateScrollState();
     raf = window.requestAnimationFrame(frame);
 
@@ -159,6 +272,13 @@ const ExperienceRuntime = () => {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
       window.removeEventListener("pointerleave", onPointerLeave);
+      if (!supportsPointerEvents) {
+        window.removeEventListener("touchstart", onTouchStart);
+        window.removeEventListener("touchmove", onTouchMove);
+        window.removeEventListener("touchend", onTouchEnd);
+        window.removeEventListener("touchcancel", onTouchEnd);
+      }
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
