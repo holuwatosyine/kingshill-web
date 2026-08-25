@@ -29,6 +29,12 @@ html.kh-is-loading body {
   overflow: hidden !important;
 }
 
+html.kh-experience-ready,
+html.kh-experience-ready body,
+body.kh-experience-ready {
+  overflow-y: auto !important;
+}
+
 @media (pointer: fine) {
   html:not(.kh-is-loading),
   html:not(.kh-is-loading) body,

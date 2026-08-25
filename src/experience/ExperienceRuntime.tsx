@@ -130,6 +130,19 @@ const ExperienceRuntime = () => {
         lenisStoppedForLoader = false;
       }
     };
+    const releasePageScroll = () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      if (lenis) {
+        lenis.start();
+        lenisStoppedForLoader = false;
+        lenis.scrollTo(0, { immediate: true });
+      } else {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
+      updateScrollState();
+    };
+    window.addEventListener("kingshill:preloader-complete", releasePageScroll);
     syncLoaderScroll();
 
     const updateScrollState = (event?: { scroll: number; limit: number; velocity: number; direction: number }) => {
@@ -295,6 +308,7 @@ const ExperienceRuntime = () => {
         window.removeEventListener("touchcancel", onTouchEnd);
       }
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("kingshill:preloader-complete", releasePageScroll);
     };
   }, []);
 

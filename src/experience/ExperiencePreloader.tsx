@@ -241,7 +241,9 @@ const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean 
 
         if (exit >= 1) {
           document.documentElement.classList.remove("kh-is-loading");
+          document.documentElement.classList.add("kh-experience-ready");
           document.body.classList.add("kh-experience-ready");
+          window.dispatchEvent(new CustomEvent("kingshill:preloader-complete"));
           window.removeEventListener("scroll", lockPageScroll, { capture: true });
           document.documentElement.style.overflow = previousRootOverflow;
           document.body.style.overflow = previousBodyOverflow;
