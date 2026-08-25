@@ -1,8 +1,18 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { experienceState, type ExperienceReadyKey } from "@/experience/state";
+import CloudPrelude from "@/experience/CloudPrelude";
 
-const CloudPrelude = lazy(() => import("@/experience/CloudPrelude"));
+// Start the Home route and its protected visual modules while the cloud threshold
+// is on screen. React will reuse these module promises when it renders Home.
+const homeRoutePromise = import("@/pages/Index");
+const homeVisualPromises = [
+  import("@/components/effects/LusionHero"),
+  import("@/components/effects/KingshillPassage"),
+  import("@/components/effects/FooterShaderBackground"),
+  import("@/components/effects/FooterWordmarkScene"),
+  import("@/components/effects/TestimonialShaderBackground"),
+];
 
 const loaderVertex = `
 varying vec2 vUv;
@@ -18,7 +28,7 @@ varying vec2 vUv;
 vec2 rotate2d(vec2 p,float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c)*p;}
 float lineSegment(vec2 p,vec2 a,vec2 b,float w){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0);float d=length(pa-ba*h);return 1.0-smoothstep(w,w+max(fwidth(d),.0015),d);}
 float mark(vec2 p){float w=.025;float k=lineSegment(p,vec2(-.49,-.2),vec2(-.49,.2),w)+lineSegment(p,vec2(-.49,0.),vec2(-.27,.2),w)+lineSegment(p,vec2(-.49,0.),vec2(-.25,-.2),w);vec2 cp=p-vec2(-.015,0.);float c=1.0-smoothstep(w,w+max(fwidth(abs(length(cp)-.2)),.002),abs(length(cp)-.2));c*=1.0-step(.035,cp.x)*(1.0-smoothstep(.095,.14,abs(cp.y)));float a=lineSegment(p,vec2(.2,-.2),vec2(.38,.2),w)+lineSegment(p,vec2(.38,.2),vec2(.56,-.2),w)+lineSegment(p,vec2(.27,-.04),vec2(.49,-.04),w);return clamp(k+c+a,0.0,1.0);}
-void main(){vec2 p=vUv*2.0-1.0;p.x*=uAspect;float transform=smoothstep(.38,1.0,uExit);p/=mix(1.0,6.6,transform);p=rotate2d(p,mix(0.0,PI/16.0,transform));p.y+=mix(0.0,.1,transform);float track=(1.0-step(p.x,-.3))*(1.0-step(.3,p.x))*(1.0-step(p.y,-.05))*(1.0-step(.05,p.y));float fill=track*(1.0-step(-.3+.6*uProgress,p.x));  float logo=0.0;float loading=1.0-step(.999,uProgress);float shape=track*loading+logo*(1.0-loading);vec3 navy=vec3(.006,.012,.026);vec3 mineral=vec3(.22,.56,.55);vec3 paper=vec3(.96,.97,.92);vec3 trackColor=vec3(1.0)*track*loading; vec3 fillColor=vec3(1.0)*fill*loading;vec3 logoColor=paper*logo*(1.0-loading);float alpha=1.0-smoothstep(.76,1.0,uExit); vec3 markColor=mix(vec3(0.0),trackColor+fillColor+logoColor,clamp(shape,0.0,1.0)); gl_FragColor=vec4(markColor,alpha*clamp(shape,0.0,1.0));}
+void main(){gl_FragColor=vec4(0.0,0.0,0.0,0.0);}
 `;
 
 const assets = [
@@ -36,7 +46,7 @@ const assets = [
   { url: "/IMG-20250827-WA0022.webp", bytes: 320_000 },
 ];
 
-const ExperiencePreloader = () => {
+const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const counterRef = useRef<HTMLSpanElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -44,7 +54,6 @@ const ExperiencePreloader = () => {
   const [mounted, setMounted] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const [gestureReady, setGestureReady] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -107,10 +116,6 @@ const ExperiencePreloader = () => {
         unsubscribe();
         resolve();
       });
-      window.setTimeout(() => {
-        unsubscribe();
-        resolve();
-      }, 12_000);
     });
 
     const gestureTravel = () => Math.max(1, window.innerHeight * 4.25);
@@ -168,8 +173,14 @@ const ExperiencePreloader = () => {
       await Promise.allSettled([
         document.fonts?.ready ?? Promise.resolve(),
         waitForRuntime(["cloud", "water", "fluid"]),
+        homeRoutePromise,
+        ...homeVisualPromises,
         import("@/components/effects/LusionConnectors"),
       ]);
+      if (requiresHome) {
+        await waitForRuntime(["home"]);
+        await Promise.all(Array.from(document.images).filter((image) => image.complete).map((image) => image.decode().catch(() => undefined)));
+      }
       target = 1;
     };
 
@@ -210,7 +221,6 @@ const ExperiencePreloader = () => {
         if (target >= 1 && current > 0.998) current = 1;
         if (current >= 1 && !inputReady) {
           inputReady = true;
-          setGestureReady(true);
           experienceState.setCloudProgress(mapGestureToCloud(gestureProgress));
         }
         if (inputReady && gestureProgress >= 1 && !hasBegunExit) {
@@ -301,10 +311,10 @@ const ExperiencePreloader = () => {
     >
       <canvas ref={canvasRef} aria-hidden="true" />
       <div className="kh-loader__main">
-        <div className="kh-loader__status">
-          <span>Scroll forward to enter</span>
-          <i />
-        </div>
+                  <div className="kh-loader__status">
+            <span>Scroll forward to enter</span>
+          </div>
+
       </div>
 
       <span ref={counterRef} className="kh-loader__counter">000</span>

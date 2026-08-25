@@ -334,7 +334,7 @@ const ExperienceRuntime = () => {
 
   return (
     <>
-      <ExperiencePreloader />
+      <ExperiencePreloader requiresHome={location.pathname === "/"} />
       <FluidPointer />
       {location.pathname !== "/" && <SubpageAtmosphere />}
     </>

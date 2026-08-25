@@ -1,6 +1,6 @@
 export type ExperienceQuality = "low" | "medium" | "high";
 export type ExperienceChapter = "ENTRY" | "HERO" | "DISCOVERY" | "PATHWAYS" | "PROOF" | "EPILOGUE";
-export type ExperienceReadyKey = "assets" | "cloud" | "water" | "fluid";
+export type ExperienceReadyKey = "assets" | "cloud" | "water" | "fluid" | "home";
 
 type ReadyListener = () => void;
 

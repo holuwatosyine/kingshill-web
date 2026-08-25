@@ -65,6 +65,11 @@ const HomeExperience = () => {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
 
   useEffect(() => {
+    const homeReadyFrame = window.requestAnimationFrame(() => experienceState.markReady("home"));
+    return () => window.cancelAnimationFrame(homeReadyFrame);
+  }, []);
+
+  useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
 

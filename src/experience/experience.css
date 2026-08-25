@@ -85,7 +85,6 @@ html.kh-is-loading body {
 .kh-loader__sound { font: 650 0.46rem/1 "Geist KH", sans-serif; letter-spacing: 0.3em; }
 .kh-loader__brand span { opacity: 0.55; }
 .kh-loader__status { position: absolute; z-index: 2; top: calc(50% + 112px); left: 50%; width: min(330px, 66vw); display: flex; flex-direction: column; gap: 13px; color: rgba(242, 237, 223, 0.62); text-align: center; transform: translateX(-50%); }
-.kh-loader__status i { height: 1px; background: linear-gradient(90deg, transparent, rgba(205, 173, 63, 0.56), transparent); transform-origin: left; animation: kh-loader-breathe 2.8s ease-in-out infinite; }
 .kh-loader__counter { position: absolute; z-index: 2; bottom: 0; left: 0; padding: clamp(18px, 3vw, 48px); color: #f2eddf; font: 470 clamp(3.5rem, 7.5vw, 6rem)/1 "Geist Mono KH", monospace; letter-spacing: -0.07em; }
 .kh-loader__sound { position: absolute; z-index: 3; right: clamp(20px, 3vw, 48px); bottom: clamp(22px, 3.4vw, 52px); display: flex; align-items: center; gap: 12px; padding: 10px 0; color: #f2eddf; background: none; border: 0; }
 .kh-loader__sound > span { height: 22px; display: flex; align-items: center; gap: 3px; }
@@ -292,7 +291,6 @@ html.kh-is-loading body {
 
 .kh-subpage footer { position: relative; z-index: 1; }
 
-@keyframes kh-loader-breathe { 50% { opacity: 0.3; transform: scaleX(0.68); } }
 @keyframes kh-sound-pulse { to { height: 22px; } }
 @keyframes kh-cloud-type { to { opacity: 1; transform: none; } }
 @keyframes kh-route-image-float { 50% { translate: 0 -8px; } }
@@ -307,7 +305,6 @@ html.kh-is-loading body {
 
 @media (prefers-reduced-motion: reduce) {
   .kh-cloud-prelude { height: 150svh; }
-  .kh-loader__status i,
   .kh-loader__sound i { animation: none !important; }
   html:not(.kh-is-loading),
   html:not(.kh-is-loading) body,
@@ -377,7 +374,6 @@ html.kh-is-loading body {
   background: radial-gradient(circle at 50% 48%, rgba(3,16,31,.28), transparent 30%);
 }
 .kh-loader__status { color: rgba(255,255,255,.92); text-shadow: 0 1px 18px rgba(3,16,31,.5); }
-.kh-loader__status i { background: linear-gradient(90deg, transparent, rgba(255,255,255,.94), transparent); }
 .kh-loader__counter { color: #fff; text-shadow: 0 2px 22px rgba(3,16,31,.55); }
 .kh-loader__sound { color: #fff; border-color: rgba(255,255,255,.56); background: rgba(3,16,31,.42); box-shadow: 0 10px 30px rgba(3,16,31,.18); }
 .kh-loader__sound i { background: #fff; }

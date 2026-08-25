@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SkipLink from "@/components/SkipLink";
-import { SectionSkeleton } from "@/components/Skeletons";
 import ExperienceRuntime from "@/experience/ExperienceRuntime";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -30,7 +29,7 @@ const App = () => (
       <ErrorBoundary>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <ExperienceRuntime />
-          <Suspense fallback={<SectionSkeleton />}>
+          <Suspense fallback={null}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/about" element={<About />} />
