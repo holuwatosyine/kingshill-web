@@ -79,8 +79,9 @@ const CTASection = () => {
             </div>
 
             <div className="flex flex-col gap-4 sm:gap-6 animate-fade-in-up justify-center lg:justify-start" style={{animationDelay: '0.3s'}}>
-              <span ref={primaryRef as any} className="inline-block">
+              <span className="inline-block">
                 <Button
+                  ref={primaryRef}
                   size="lg"
                   className="relative overflow-hidden group bg-white text-coaching-red hover:bg-coaching-gold hover:text-coaching-navy font-bold px-6 sm:px-8 md:px-10 py-4 sm:py-5 rounded-xl text-base sm:text-lg hover:shadow-glow transition-all duration-500 hover:scale-105 shadow-glow w-full sm:w-auto"
                 >

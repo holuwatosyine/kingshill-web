@@ -10,6 +10,12 @@ export default defineConfig(() => ({
     allowedHosts: [".manus.computer"],
   },
   plugins: [react()],
+  build: {
+    sourcemap: false,
+    cssMinify: "esbuild",
+    reportCompressedSize: false,
+    chunkSizeWarningLimit: 700,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

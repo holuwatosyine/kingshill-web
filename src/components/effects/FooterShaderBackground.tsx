@@ -12,7 +12,7 @@ const FooterShaderBackground = () => (
         speed={0.16}
       />
       <FilmGrain strength={0.006} />
-      <Tritone colorA="#ffffff" colorB="#fcfcfa" colorC="#f8faf9" colorSpace="rgb" />
+      <Tritone colorA="#ffffff" colorB="#fcfcfa" colorC="#f8faf9" colorSpace="linear" />
       <ZoomBlur center={{ x: 0.78, y: 0.28 }} intensity={0.06} />
     </ShaderSurface>
   </div>

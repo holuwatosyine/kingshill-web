@@ -34,7 +34,7 @@ const VideoSection = () => {
             <div className="relative">
               <video
                 controls
-                preload="metadata"
+                preload="none"
                 className="w-full h-auto rounded-3xl [&::-webkit-media-controls-panel]:bg-black/60 [&::-webkit-media-controls-panel]:backdrop-blur-sm [&::-webkit-media-controls-play-button]:scale-50 [&::-webkit-media-controls-play-button]:opacity-90 hover:[&::-webkit-media-controls-play-button]:opacity-100 [&::-webkit-media-controls-timeline]:h-2 [&::-webkit-media-controls-volume-slider]:h-2 [&::-webkit-media-controls-play-button]:rounded-full [&::-webkit-media-controls-play-button]:bg-coaching-gold [&::-webkit-media-controls-play-button]:border-2 [&::-webkit-media-controls-play-button]:border-coaching-navy"
                 style={{
                   '--webkit-media-controls-panel-color': 'rgba(0,0,0,0.6)',

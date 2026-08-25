@@ -4,9 +4,8 @@ import { experienceState, type ExperienceReadyKey } from "@/experience/state";
 import CloudPrelude from "@/experience/CloudPrelude";
 
 // Start the Home route and its protected visual modules while the cloud threshold
-// is on screen. React will reuse these module promises when it renders Home.
-const homeRoutePromise = import("@/pages/Index");
-const homeVisualPromises = [
+// is on screen. React reuses these module promises when it renders Home.
+const loadHomeVisualModules = () => [
   import("@/components/effects/LusionHero"),
   import("@/components/effects/KingshillPassage"),
   import("@/components/effects/FooterShaderBackground"),
@@ -35,7 +34,6 @@ const assets = [
   { url: "/experience/cloud.png", bytes: 420_000 },
   { url: "/experience/waternormals.jpg", bytes: 1_100_000 },
   { url: "/experience/models/c-transformed.glb", bytes: 310_000 },
-  { url: "/experience/audio/kingshill-atmosphere.mp3", bytes: 3_000_000 },
   { url: "/experience/fonts/GeistVF.woff2", bytes: 190_000 },
   { url: "/experience/fonts/GeistMonoVF.woff2", bytes: 180_000 },
   { url: "/IMG-20250827-WA0019.webp", bytes: 320_000 },
@@ -47,6 +45,7 @@ const assets = [
 ];
 
 const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean }) => {
+  const requiresHomeRef = useRef(requiresHome);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const counterRef = useRef<HTMLSpanElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -170,14 +169,15 @@ const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean 
     const preload = async () => {
       await Promise.allSettled(assets.map(loadAsset));
       experienceState.markReady("assets");
+      const homeRoutePromise = requiresHomeRef.current ? import("@/pages/Index") : Promise.resolve();
       await Promise.allSettled([
         document.fonts?.ready ?? Promise.resolve(),
-        waitForRuntime(requiresHome ? ["cloud", "fluid"] : ["cloud", "water", "fluid"]),
+        waitForRuntime(requiresHomeRef.current ? ["cloud", "fluid"] : ["cloud", "water", "fluid"]),
         homeRoutePromise,
-        ...homeVisualPromises,
+        ...(requiresHomeRef.current ? loadHomeVisualModules() : []),
         import("@/components/effects/LusionConnectors"),
       ]);
-      if (requiresHome) {
+      if (requiresHomeRef.current) {
         await waitForRuntime(["home"]);
         await Promise.all(Array.from(document.images).filter((image) => image.complete).map((image) => image.decode().catch(() => undefined)));
       }
@@ -292,6 +292,7 @@ const ExperiencePreloader = ({ requiresHome = false }: { requiresHome?: boolean 
     let audio = audioRef.current;
     if (!audio) {
       audio = new Audio("/experience/audio/kingshill-atmosphere.mp3");
+      audio.preload = "none";
       audio.loop = true;
       audio.volume = 0.14;
       audioRef.current = audio;

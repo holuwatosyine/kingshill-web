@@ -40,7 +40,7 @@ const AboutVideo = () => {
             <div className="relative">
               <video
                 ref={videoRef}
-                preload="metadata"
+                preload="none"
                 playsInline
                 poster="/img-20250827-wa0023.jpg"
                 className="w-full h-auto rounded-3xl"

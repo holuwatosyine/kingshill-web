@@ -12,7 +12,7 @@ const TestimonialShaderBackground = () => (
         speed={0.24}
       />
       <FilmGrain strength={0.035} />
-      <Tritone colorA="#ffffff" colorB="#fbfbfb" colorC="#f4f4f4" colorSpace="rgb" />
+      <Tritone colorA="#ffffff" colorB="#fbfbfb" colorC="#f4f4f4" colorSpace="linear" />
       <ZoomBlur center={{ x: 0.37, y: 0.35 }} intensity={18} />
     </ShaderSurface>
   </div>
